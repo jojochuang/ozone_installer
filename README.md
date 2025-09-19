@@ -2,6 +2,12 @@
 
 This repository contains scripts and configurations for setting up various development environments.
 
+## Documentation
+
+For detailed documentation, see the [docs](docs/) directory:
+- [Design Documents](docs/design/) - Architecture and design specifications
+- [Features](docs/features/) - User-facing feature documentation
+
 ## Rocky9 Docker Container with SSH Access
 
 The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with SSH daemon configured for password-less authentication using SSH keys.

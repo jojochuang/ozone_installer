@@ -1,0 +1,37 @@
+FROM rockylinux:9
+
+# Install SSH server and other essential packages
+RUN dnf update -y && \
+    dnf install -y openssh-server sudo which passwd && \
+    dnf clean all
+
+# Create the SSH host keys
+RUN ssh-keygen -A
+
+# Create a user for SSH access
+RUN useradd -m -s /bin/bash rocky && \
+    echo 'rocky:rocky' | chpasswd && \
+    usermod -aG wheel rocky
+
+# Allow the rocky user to use sudo without password
+RUN echo 'rocky ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Configure SSH daemon
+RUN mkdir -p /home/rocky/.ssh && \
+    chown rocky:rocky /home/rocky/.ssh && \
+    chmod 700 /home/rocky/.ssh
+
+# Configure sshd for password-less authentication
+RUN sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Create the run directory for sshd
+RUN mkdir -p /run/sshd
+
+# Expose SSH port
+EXPOSE 22
+
+# Start SSH daemon
+CMD ["/usr/sbin/sshd", "-D"]

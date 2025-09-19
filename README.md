@@ -32,7 +32,7 @@ This installer provides automated setup and configuration for Apache Ozone clust
 Edit `ozone_installer.conf` to specify:
 
 - `CLUSTER_HOSTS` - Comma-separated list of hostnames/IPs
-- SSH credentials and key file location
+- SSH credentials, port, and key file location
 - Ozone directory paths for different components
 
 Example:
@@ -40,6 +40,7 @@ Example:
 CLUSTER_HOSTS="node1.example.com,node2.example.com,node3.example.com"
 SSH_USER="root"
 SSH_PRIVATE_KEY_FILE="~/.ssh/ozone.private"
+SSH_PORT="22"
 ```
 
 ## Usage

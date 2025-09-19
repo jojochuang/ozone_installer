@@ -87,7 +87,7 @@ validate_ssh_connection() {
     fi
     
     # Test SSH connection
-    if ssh -i "$ssh_key_expanded" -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$host" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+    if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$host" "echo 'SSH connection successful'" >/dev/null 2>&1; then
         log "SSH connection to $host successful"
         return 0
     else
@@ -104,7 +104,7 @@ get_host_info() {
     info "Gathering information for host: $host"
     
     # Execute remote commands to get host information
-    local host_info=$(ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    local host_info=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         hostname=$(hostname)
         ip_address=$(hostname -I | awk "{print \$1}")
         cpu_arch=$(uname -m)
@@ -161,7 +161,7 @@ configure_cpu_governor() {
     
     info "Configuring CPU frequency governor on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Check if CPU frequency scaling is available
         if [[ -d /sys/devices/system/cpu/cpu0/cpufreq ]]; then
             # Check current governor
@@ -192,7 +192,7 @@ disable_thp() {
     
     info "Disabling Transparent Huge Pages on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Check if THP is enabled
         if [[ -f /sys/kernel/mm/transparent_hugepage/enabled ]]; then
             thp_status=$(cat /sys/kernel/mm/transparent_hugepage/enabled)
@@ -227,7 +227,7 @@ disable_selinux() {
     
     info "Disabling SELinux on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         if command -v getenforce >/dev/null 2>&1; then
             selinux_status=$(getenforce)
             echo "Current SELinux status: $selinux_status"
@@ -257,7 +257,7 @@ configure_swappiness() {
     
     info "Configuring vm.swappiness on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         current_swappiness=$(sysctl -n vm.swappiness)
         echo "Current vm.swappiness: $current_swappiness"
         
@@ -284,7 +284,7 @@ validate_filesystem() {
     
     info "Validating filesystem for directories on $host: $directories"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         for dir in $directories; do
             if [[ -n \"\$dir\" ]]; then
                 echo \"Checking directory: \$dir\"
@@ -344,7 +344,7 @@ install_jdk() {
     
     info "Installing OpenJDK $jdk_version on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Detect package manager
         if command -v yum >/dev/null 2>&1; then
             PKG_MGR=\"yum\"
@@ -389,7 +389,7 @@ install_time_sync() {
     
     info "Installing and configuring time synchronization on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Detect package manager
         if command -v yum >/dev/null 2>&1; then
             PKG_MGR="yum"

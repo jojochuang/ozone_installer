@@ -55,7 +55,7 @@ check_ozone_installation() {
     
     info "Checking Ozone installation on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Check if ozone command is available
         if command -v ozone >/dev/null 2>&1; then
             echo "Ozone command found: $(which ozone)"
@@ -86,7 +86,7 @@ format_scm() {
     
     info "Formatting SCM on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -112,7 +112,7 @@ format_om() {
     
     info "Formatting OM on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -138,7 +138,7 @@ start_scm() {
     
     info "Starting SCM on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -170,7 +170,7 @@ start_om() {
     
     info "Starting OM on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -202,7 +202,7 @@ start_datanode() {
     
     info "Starting DataNode on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -234,7 +234,7 @@ start_recon() {
     
     info "Starting Recon on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Find ozone binary
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -272,7 +272,7 @@ wait_for_safe_mode_exit() {
         log "Checking safe mode status (attempt $((attempt + 1))/$max_attempts)..."
         
         # Check safe mode status
-        safe_mode_result=$(ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$primary_host" '
+        safe_mode_result=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$primary_host" '
             # Find ozone binary
             if command -v ozone >/dev/null 2>&1; then
                 OZONE_CMD="ozone"
@@ -314,7 +314,7 @@ check_service_status() {
     
     info "Checking service status on $host"
     
-    ssh -i "$ssh_key_expanded" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         echo "Checking running Ozone processes:"
         
         if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then

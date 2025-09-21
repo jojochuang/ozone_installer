@@ -74,21 +74,21 @@ check_ozone_installation() {
         if command -v ozone >/dev/null 2>&1; then
             echo "Ozone command found: $(which ozone)"
             ozone version
-            return 0
+            exit 0
         elif [[ -f /opt/ozone/bin/ozone ]]; then
             echo "Ozone found at: /opt/ozone/bin/ozone"
             export OZONE_HOME=/opt/ozone
             /opt/ozone/bin/ozone version
-            return 0
+            exit 0
         elif [[ -f /usr/local/ozone/bin/ozone ]]; then
             echo "Ozone found at: /usr/local/ozone/bin/ozone"
             export OZONE_HOME=/usr/local/ozone
             /usr/local/ozone/bin/ozone version
-            return 0
+            exit 0
         else
             echo "ERROR: Ozone installation not found"
             echo "Please install Ozone before running this script"
-            return 1
+            exit 1
         fi
     '
 }

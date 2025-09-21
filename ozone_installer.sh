@@ -347,7 +347,7 @@ validate_filesystem() {
 ask_jdk_version() {
     echo "" >&2
     echo "Select JDK version to install:" >&2
-    echo "1) OpenJDK 8 (default)" >&2
+    echo "1) OpenJDK 8 (default, may fall back to JDK 11 on newer distributions)" >&2
     echo "2) OpenJDK 11" >&2
     echo "3) OpenJDK 17" >&2
     echo "4) OpenJDK 21" >&2
@@ -371,7 +371,7 @@ install_jdk() {
     info "Installing OpenJDK $jdk_version on $host"
     
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Detect package manager
+        # Detect package manager and distribution
         if command -v yum >/dev/null 2>&1; then
             PKG_MGR=\"yum\"
         elif command -v dnf >/dev/null 2>&1; then
@@ -387,24 +387,111 @@ install_jdk() {
         
         echo \"Using package manager: \$PKG_MGR\"
         
-        # Install JDK based on package manager
+        # Function to check if a package exists
+        package_exists() {
+            case \$PKG_MGR in
+                \"yum\"|\"dnf\")
+                    \$PKG_MGR list available \"\$1\" >/dev/null 2>&1
+                    ;;
+                \"apt-get\")
+                    apt-cache show \"\$1\" >/dev/null 2>&1
+                    ;;
+                \"zypper\")
+                    zypper info \"\$1\" >/dev/null 2>&1
+                    ;;
+            esac
+        }
+        
+        # Determine the correct package names and check availability
         case \$PKG_MGR in
             \"yum\"|\"dnf\")
-                sudo \$PKG_MGR update -y
-                sudo \$PKG_MGR install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
+                # RHEL/Rocky/CentOS package names
+                if [[ \"$jdk_version\" == \"8\" ]]; then
+                    # Check if JDK 8 is available (not available on RHEL 9+ / Rocky 9+)
+                    if package_exists \"java-1.8.0-openjdk\"; then
+                        JDK_PACKAGES=\"java-1.8.0-openjdk java-1.8.0-openjdk-devel\"
+                    else
+                        echo \"OpenJDK 8 is not available on this distribution. Falling back to OpenJDK 11.\"
+                        JDK_PACKAGES=\"java-11-openjdk java-11-openjdk-devel\"
+                    fi
+                else
+                    JDK_PACKAGES=\"java-$jdk_version-openjdk java-$jdk_version-openjdk-devel\"
+                fi
+                
+                # Verify packages exist
+                valid_packages=\"\"
+                for pkg in \$JDK_PACKAGES; do
+                    if package_exists \"\$pkg\"; then
+                        valid_packages=\"\$valid_packages \$pkg\"
+                    else
+                        echo \"Package \$pkg not found\"
+                    fi
+                done
+                
+                if [[ -n \"\$valid_packages\" ]]; then
+                    sudo \$PKG_MGR update -y
+                    sudo \$PKG_MGR install -y \$valid_packages
+                else
+                    echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    exit 1
+                fi
                 ;;
+                
             \"apt-get\")
-                sudo \$PKG_MGR update -y
-                sudo \$PKG_MGR install -y openjdk-$jdk_version-jdk
+                # Ubuntu/Debian package names
+                JDK_PACKAGES=\"openjdk-$jdk_version-jdk\"
+                
+                if package_exists \"\$JDK_PACKAGES\"; then
+                    sudo \$PKG_MGR update -y
+                    sudo \$PKG_MGR install -y \$JDK_PACKAGES
+                else
+                    echo \"OpenJDK $jdk_version not available. Checking for alternatives...\"
+                    # Try alternative versions
+                    for alt_version in 11 17 21 8; do
+                        if [[ \"\$alt_version\" != \"$jdk_version\" ]] && package_exists \"openjdk-\$alt_version-jdk\"; then
+                            echo \"Installing OpenJDK \$alt_version instead\"
+                            sudo \$PKG_MGR update -y
+                            sudo \$PKG_MGR install -y \"openjdk-\$alt_version-jdk\"
+                            break
+                        fi
+                    done
+                fi
                 ;;
+                
             \"zypper\")
-                sudo zypper refresh
-                sudo zypper install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
+                # SUSE package names
+                if [[ \"$jdk_version\" == \"8\" ]]; then
+                    JDK_PACKAGES=\"java-1_8_0-openjdk java-1_8_0-openjdk-devel\"
+                else
+                    JDK_PACKAGES=\"java-$jdk_version-openjdk java-$jdk_version-openjdk-devel\"
+                fi
+                
+                # Verify packages exist
+                valid_packages=\"\"
+                for pkg in \$JDK_PACKAGES; do
+                    if package_exists \"\$pkg\"; then
+                        valid_packages=\"\$valid_packages \$pkg\"
+                    fi
+                done
+                
+                if [[ -n \"\$valid_packages\" ]]; then
+                    sudo zypper refresh
+                    sudo zypper install -y \$valid_packages
+                else
+                    echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    exit 1
+                fi
                 ;;
         esac
         
         # Verify installation
-        java -version
+        if command -v java >/dev/null 2>&1; then
+            echo \"Java installation successful:\"
+            java -version
+        else
+            echo \"Java installation verification failed\"
+            exit 1
+        fi
     "
 }
 

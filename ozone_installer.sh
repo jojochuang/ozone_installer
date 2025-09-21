@@ -556,6 +556,99 @@ install_time_sync() {
     '
 }
 
+# Function to download and install Ozone
+install_ozone() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+    
+    info "Installing Apache Ozone on $host"
+    
+    # Expand the download URL with the actual version
+    local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
+    
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        # Check if Ozone is already installed
+        if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
+            echo \"Ozone already installed at $OZONE_INSTALL_DIR\"
+            $OZONE_INSTALL_DIR/bin/ozone version
+            return 0
+        fi
+        
+        echo \"Downloading Apache Ozone $OZONE_VERSION...\"
+        
+        # Create temporary directory for download
+        temp_dir=\"/tmp/ozone_install_\$\$\"
+        mkdir -p \"\$temp_dir\"
+        cd \"\$temp_dir\"
+        
+        # Download Ozone
+        if command -v wget >/dev/null 2>&1; then
+            wget \"$download_url\" -O ozone.tar.gz
+        elif command -v curl >/dev/null 2>&1; then
+            curl -L \"$download_url\" -o ozone.tar.gz
+        else
+            echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
+            exit 1
+        fi
+        
+        # Verify download
+        if [[ ! -f ozone.tar.gz ]]; then
+            echo \"ERROR: Failed to download Ozone from $download_url\"
+            exit 1
+        fi
+        
+        echo \"Extracting Ozone...\"
+        tar -xzf ozone.tar.gz
+        
+        # Find the extracted directory (should be ozone-X.Y.Z)
+        ozone_dir=\$(find . -maxdepth 1 -type d -name \"ozone-*\" | head -1)
+        if [[ -z \"\$ozone_dir\" ]]; then
+            echo \"ERROR: Could not find extracted Ozone directory\"
+            exit 1
+        fi
+        
+        echo \"Installing Ozone to $OZONE_INSTALL_DIR...\"
+        
+        # Create install directory and move files
+        sudo mkdir -p \"$OZONE_INSTALL_DIR\"
+        sudo mv \"\$ozone_dir\"/* \"$OZONE_INSTALL_DIR/\"
+        
+        # Set proper ownership and permissions
+        sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_INSTALL_DIR\"
+        sudo chmod +x \"$OZONE_INSTALL_DIR/bin/ozone\"
+        sudo chmod +x \"$OZONE_INSTALL_DIR/bin\"/*
+        
+        # Create symlink in /usr/local/bin for global access
+        if [[ ! -f /usr/local/bin/ozone ]]; then
+            sudo ln -sf \"$OZONE_INSTALL_DIR/bin/ozone\" /usr/local/bin/ozone
+        fi
+        
+        # Add to PATH in profile
+        if ! grep -q \"$OZONE_INSTALL_DIR/bin\" /etc/environment 2>/dev/null; then
+            if [[ -f /etc/environment ]]; then
+                sudo sed -i 's|PATH=\"\\([^\"]*\\)\"|PATH=\"\\1:$OZONE_INSTALL_DIR/bin\"|' /etc/environment
+            else
+                echo \"PATH=\\\$PATH:$OZONE_INSTALL_DIR/bin\" | sudo tee /etc/environment > /dev/null
+            fi
+        fi
+        
+        # Clean up
+        cd /
+        rm -rf \"\$temp_dir\"
+        
+        # Verify installation
+        if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
+            echo \"Ozone installation successful:\"
+            \"$OZONE_INSTALL_DIR/bin/ozone\" version
+            echo \"Ozone installed at: $OZONE_INSTALL_DIR\"
+            echo \"Ozone binary symlinked to: /usr/local/bin/ozone\"
+        else
+            echo \"ERROR: Ozone installation verification failed\"
+            exit 1
+        fi
+    "
+}
+
 # Main function
 main() {
     log "Starting Ozone Installer"
@@ -634,6 +727,9 @@ main() {
         
         # Install time synchronization
         install_time_sync "$host"
+        
+        # Install Apache Ozone
+        install_ozone "$host"
         
         log "Host $host configuration completed"
     done

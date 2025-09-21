@@ -33,6 +33,7 @@ Edit `ozone_installer.conf` to specify:
 
 - `CLUSTER_HOSTS` - Comma-separated list of hostnames/IPs
 - SSH credentials, port, and key file location
+- Ozone installation settings (version, installation directory)
 - Ozone directory paths for different components
 
 Example:
@@ -41,6 +42,10 @@ CLUSTER_HOSTS="node1.example.com,node2.example.com,node3.example.com"
 SSH_USER="root"
 SSH_PRIVATE_KEY_FILE="~/.ssh/ozone.private"
 SSH_PORT="22"
+
+# Ozone Installation Settings
+OZONE_VERSION="1.4.0"
+OZONE_INSTALL_DIR="/opt/ozone"
 ```
 
 ## Usage
@@ -58,6 +63,7 @@ This will:
 - Validate filesystem requirements
 - Install selected JDK version
 - Install and configure time synchronization
+- Download and install Apache Ozone binary
 
 ### 2. Generate configuration files:
 ```bash

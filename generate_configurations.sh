@@ -244,7 +244,7 @@ hadoop.log.dir=.
 hadoop.log.file=hadoop.log
 
 # Define the root logger to the system property "hadoop.root.logger".
-log4j.rootLogger=${hadoop.root.logger}, EventCounter
+log4j.rootLogger=${hadoop.root.logger}
 
 # Logging Threshold
 log4j.threshold=ALL
@@ -355,10 +355,6 @@ log4j.appender.RFAAUDIT.layout=org.apache.log4j.PatternLayout
 log4j.appender.RFAAUDIT.layout.ConversionPattern=%d{ISO8601} %p %c{2}: %m%n
 log4j.appender.RFAAUDIT.MaxFileSize=${hdfs.audit.log.maxfilesize}
 log4j.appender.RFAAUDIT.MaxBackupIndex=${hdfs.audit.log.maxbackupindex}
-
-# Event Counter Appender
-# Sends counts of logging messages at different severity levels to Hadoop Metrics.
-log4j.appender.EventCounter=org.apache.hadoop.log.metrics.EventCounter
 
 #
 # Ozone audit logging

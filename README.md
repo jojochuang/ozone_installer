@@ -58,11 +58,13 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 - **SSH Port**: 2222 (mapped from container port 22)
 - **Username**: rocky
 - **User Privileges**: sudo access without password
+- **Container Mode**: privileged (allows system-level commands like sysctl)
 - **SSH Keys**: `rocky9_key` (private) and `rocky9_key.pub` (public)
 
 ### Security Notes
 
 - The container is configured with a user `rocky` that has sudo privileges
+- The container runs in privileged mode to support system-level commands (use with caution)
 - Password authentication is enabled as a fallback, but key-based authentication is the primary method
 - Root login via SSH is disabled
 - The SSH keys are generated locally and should be kept secure

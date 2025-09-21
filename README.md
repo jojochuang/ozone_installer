@@ -39,12 +39,12 @@ Edit `ozone_installer.conf` to specify:
 Example:
 ```bash
 CLUSTER_HOSTS="node1.example.com,node2.example.com,node3.example.com"
-SSH_USER="root"
+SSH_USER="rocky"
 SSH_PRIVATE_KEY_FILE="~/.ssh/ozone.private"
-SSH_PORT="22"
+SSH_PORT="2222"
 
 # Ozone Installation Settings
-OZONE_VERSION="1.4.0"
+OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
 ```
 

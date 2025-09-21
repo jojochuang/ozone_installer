@@ -319,14 +319,14 @@ validate_filesystem() {
 
 # Function to ask for JDK version
 ask_jdk_version() {
-    echo ""
-    echo "Select JDK version to install:"
-    echo "1) OpenJDK 8 (default)"
-    echo "2) OpenJDK 11"
-    echo "3) OpenJDK 17"
-    echo "4) OpenJDK 21"
+    echo "" >&2
+    echo "Select JDK version to install:" >&2
+    echo "1) OpenJDK 8 (default)" >&2
+    echo "2) OpenJDK 11" >&2
+    echo "3) OpenJDK 17" >&2
+    echo "4) OpenJDK 21" >&2
     
-    read -p "Enter choice [1-4] (default: 1): " jdk_choice
+    read -p "Enter choice [1-4] (default: 1): " jdk_choice >&2
     
     case $jdk_choice in
         2) echo "11" ;;

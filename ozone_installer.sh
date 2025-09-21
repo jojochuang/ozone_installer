@@ -737,7 +737,7 @@ main() {
     log "Ozone Installer completed successfully"
     log "Next steps:"
     log "1. Run ./generate_configurations.sh to create Ozone configuration files"
-    log "2. Run the startup script to start Ozone services"
+    log "2. Run ./start_ozone_services.sh to start Ozone services"
 }
 
 # Check if script is being sourced or executed

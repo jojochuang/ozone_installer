@@ -48,6 +48,32 @@ load_config() {
     fi
 }
 
+# Function to check sudo privileges on remote host
+check_sudo_privileges() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+    
+    info "Checking sudo privileges on $host"
+    
+    # Test if user can run sudo
+    if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "sudo -n true" >/dev/null 2>&1; then
+        log "Sudo privileges confirmed on $host"
+        return 0
+    else
+        warn "User $SSH_USER does not have passwordless sudo on $host"
+        info "Attempting to verify sudo access with password prompt..."
+        
+        # Try with password prompt (this will fail in automated environments)
+        if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "sudo -v" >/dev/null 2>&1; then
+            log "Sudo access available (may require password) on $host"
+            return 0
+        else
+            error "User $SSH_USER cannot access sudo on $host. Please ensure the user has sudo privileges."
+            return 1
+        fi
+    fi
+}
+
 # Function to check host OS
 check_host_os() {
     local os_type=$(uname -s)
@@ -172,7 +198,7 @@ configure_cpu_governor() {
                 echo "Setting CPU governor to performance..."
                 for cpu_dir in /sys/devices/system/cpu/cpu*/cpufreq/; do
                     if [[ -d "$cpu_dir" ]]; then
-                        echo "performance" > "${cpu_dir}scaling_governor"
+                        sudo bash -c "echo performance > \"${cpu_dir}scaling_governor\""
                     fi
                 done
                 echo "CPU governor set to performance"
@@ -200,14 +226,14 @@ disable_thp() {
             
             if [[ "$thp_status" != *"[never]"* ]]; then
                 echo "Disabling THP..."
-                echo never > /sys/kernel/mm/transparent_hugepage/enabled
-                echo never > /sys/kernel/mm/transparent_hugepage/defrag
+                sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+                sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag"
                 echo "THP disabled"
                 
                 # Make it persistent
                 if ! grep -q "transparent_hugepage=never" /etc/default/grub 2>/dev/null; then
                     if [[ -f /etc/default/grub ]]; then
-                        sed -i "s/GRUB_CMDLINE_LINUX=\"/GRUB_CMDLINE_LINUX=\"transparent_hugepage=never /" /etc/default/grub
+                        sudo sed -i "s/GRUB_CMDLINE_LINUX=\"/GRUB_CMDLINE_LINUX=\"transparent_hugepage=never /" /etc/default/grub
                         echo "Added THP disable to GRUB configuration"
                     fi
                 fi
@@ -234,11 +260,11 @@ disable_selinux() {
             
             if [[ "$selinux_status" != "Disabled" ]]; then
                 echo "Disabling SELinux..."
-                setenforce 0
+                sudo setenforce 0
                 
                 # Make it persistent
                 if [[ -f /etc/selinux/config ]]; then
-                    sed -i "s/^SELINUX=.*/SELINUX=disabled/" /etc/selinux/config
+                    sudo sed -i "s/^SELINUX=.*/SELINUX=disabled/" /etc/selinux/config
                     echo "SELinux disabled and made persistent"
                 fi
             else
@@ -263,11 +289,11 @@ configure_swappiness() {
         
         if [[ "$current_swappiness" != "1" ]]; then
             echo "Setting vm.swappiness to 1..."
-            sysctl -w vm.swappiness=1
+            sudo sysctl -w vm.swappiness=1
             
             # Make it persistent
             if ! grep -q "vm.swappiness = 1" /etc/sysctl.conf; then
-                echo "vm.swappiness = 1" >> /etc/sysctl.conf
+                sudo bash -c "echo \"vm.swappiness = 1\" >> /etc/sysctl.conf"
                 echo "vm.swappiness made persistent"
             fi
         else
@@ -290,7 +316,7 @@ validate_filesystem() {
                 echo \"Checking directory: \$dir\"
                 
                 # Create directory if it doesn't exist
-                mkdir -p \"\$dir\"
+                sudo mkdir -p \"\$dir\"
                 
                 # Get mount point and filesystem type
                 mount_point=\$(df \"\$dir\" | tail -1 | awk '{print \$1}')
@@ -364,16 +390,16 @@ install_jdk() {
         # Install JDK based on package manager
         case \$PKG_MGR in
             \"yum\"|\"dnf\")
-                \$PKG_MGR update -y
-                \$PKG_MGR install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
+                sudo \$PKG_MGR update -y
+                sudo \$PKG_MGR install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
                 ;;
             \"apt-get\")
-                \$PKG_MGR update -y
-                \$PKG_MGR install -y openjdk-$jdk_version-jdk
+                sudo \$PKG_MGR update -y
+                sudo \$PKG_MGR install -y openjdk-$jdk_version-jdk
                 ;;
             \"zypper\")
-                zypper refresh
-                zypper install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
+                sudo zypper refresh
+                sudo zypper install -y java-$jdk_version-openjdk java-$jdk_version-openjdk-devel
                 ;;
         esac
         
@@ -407,35 +433,35 @@ install_time_sync() {
         # Try to install chrony first, fall back to ntp
         case $PKG_MGR in
             "yum"|"dnf")
-                if $PKG_MGR install -y chrony; then
-                    systemctl enable chronyd
-                    systemctl start chronyd
+                if sudo $PKG_MGR install -y chrony; then
+                    sudo systemctl enable chronyd
+                    sudo systemctl start chronyd
                     echo "Chrony installed and started"
-                elif $PKG_MGR install -y ntp; then
-                    systemctl enable ntpd
-                    systemctl start ntpd
+                elif sudo $PKG_MGR install -y ntp; then
+                    sudo systemctl enable ntpd
+                    sudo systemctl start ntpd
                     echo "NTP installed and started"
                 fi
                 ;;
             "apt-get")
-                if $PKG_MGR install -y chrony; then
-                    systemctl enable chrony
-                    systemctl start chrony
+                if sudo $PKG_MGR install -y chrony; then
+                    sudo systemctl enable chrony
+                    sudo systemctl start chrony
                     echo "Chrony installed and started"
-                elif $PKG_MGR install -y ntp; then
-                    systemctl enable ntp
-                    systemctl start ntp
+                elif sudo $PKG_MGR install -y ntp; then
+                    sudo systemctl enable ntp
+                    sudo systemctl start ntp
                     echo "NTP installed and started"
                 fi
                 ;;
             "zypper")
-                if zypper install -y chrony; then
-                    systemctl enable chronyd
-                    systemctl start chronyd
+                if sudo zypper install -y chrony; then
+                    sudo systemctl enable chronyd
+                    sudo systemctl start chronyd
                     echo "Chrony installed and started"
-                elif zypper install -y ntp; then
-                    systemctl enable ntpd
-                    systemctl start ntpd
+                elif sudo zypper install -y ntp; then
+                    sudo systemctl enable ntpd
+                    sudo systemctl start ntpd
                     echo "NTP installed and started"
                 fi
                 ;;
@@ -475,6 +501,11 @@ main() {
         fi
         
         if ! get_host_info "$host"; then
+            exit 1
+        fi
+        
+        # Check sudo privileges
+        if ! check_sudo_privileges "$host"; then
             exit 1
         fi
     done

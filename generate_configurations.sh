@@ -404,20 +404,31 @@ distribute_configs() {
         
         # Create Ozone configuration directory on remote host
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-            mkdir -p /etc/hadoop/conf
-            mkdir -p /opt/ozone/etc/hadoop
+            sudo mkdir -p /etc/hadoop/conf
+            sudo mkdir -p /opt/ozone/etc/hadoop
         "
         
-        # Copy configuration files
-        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/core-site.xml" "$SSH_USER@$host:/etc/hadoop/conf/"
-        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/ozone-site.xml" "$SSH_USER@$host:/etc/hadoop/conf/"
-        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/log4j.properties" "$SSH_USER@$host:/etc/hadoop/conf/"
+        # Copy configuration files to temporary location first, then move with sudo
+        temp_dir="/tmp/ozone_config_$$"
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "mkdir -p $temp_dir"
+        
+        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/core-site.xml" "$SSH_USER@$host:$temp_dir/"
+        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/ozone-site.xml" "$SSH_USER@$host:$temp_dir/"
+        scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/log4j.properties" "$SSH_USER@$host:$temp_dir/"
+        
+        # Move files to final destinations with sudo
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+            sudo mv $temp_dir/core-site.xml /etc/hadoop/conf/
+            sudo mv $temp_dir/ozone-site.xml /etc/hadoop/conf/
+            sudo mv $temp_dir/log4j.properties /etc/hadoop/conf/
+            rm -rf $temp_dir
+        "
         
         # Also copy to Ozone directory
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-            cp /etc/hadoop/conf/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
-            cp /etc/hadoop/conf/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
-            cp /etc/hadoop/conf/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
+            sudo cp /etc/hadoop/conf/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
+            sudo cp /etc/hadoop/conf/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
+            sudo cp /etc/hadoop/conf/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
         "
         
         log "Configuration files distributed to $host"

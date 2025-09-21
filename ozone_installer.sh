@@ -570,7 +570,18 @@ install_ozone() {
         # Check if Ozone is already installed
         if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
             echo \"Ozone already installed at $OZONE_INSTALL_DIR\"
-            $OZONE_INSTALL_DIR/bin/ozone version
+            # Set up environment variables for version check
+            export JAVA_HOME=/usr/lib/jvm/java
+            export OZONE_HOME=\"$OZONE_INSTALL_DIR\"
+            # Find and use the actual JAVA_HOME if java is installed
+            if command -v java >/dev/null 2>&1; then
+                java_bin=\$(which java)
+                if [[ -L \"\$java_bin\" ]]; then
+                    java_bin=\$(readlink -f \"\$java_bin\")
+                fi
+                export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
+            fi
+            \"$OZONE_INSTALL_DIR/bin/ozone\" version
             return 0
         fi
         
@@ -639,6 +650,17 @@ install_ozone() {
         # Verify installation
         if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
             echo \"Ozone installation successful:\"
+            # Set up environment variables for version check
+            export JAVA_HOME=/usr/lib/jvm/java
+            export OZONE_HOME=\"$OZONE_INSTALL_DIR\"
+            # Find and use the actual JAVA_HOME if java is installed
+            if command -v java >/dev/null 2>&1; then
+                java_bin=\$(which java)
+                if [[ -L \"\$java_bin\" ]]; then
+                    java_bin=\$(readlink -f \"\$java_bin\")
+                fi
+                export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
+            fi
             \"$OZONE_INSTALL_DIR/bin/ozone\" version
             echo \"Ozone installed at: $OZONE_INSTALL_DIR\"
             echo \"Ozone binary symlinked to: /usr/local/bin/ozone\"

@@ -317,7 +317,7 @@ validate_filesystem() {
 
                 # Create directory if it doesn't exist
                 sudo mkdir -p \"\$dir\"
-                
+
                 # Change ownership to the SSH user so Ozone services can access it
                 sudo chown -R \$(whoami):\$(id -gn) \"\$dir\"
 

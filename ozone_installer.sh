@@ -556,14 +556,57 @@ install_time_sync() {
     '
 }
 
+# Function to download Ozone tarball locally for distribution
+download_ozone_centrally() {
+    local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
+    local local_tarball_path="/tmp/ozone-${OZONE_VERSION}.tar.gz"
+    
+    # Check if we already have a local tarball or if LOCAL_TARBALL_PATH is specified
+    if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
+        info "Using existing local tarball: $LOCAL_TARBALL_PATH"
+        echo "$LOCAL_TARBALL_PATH"
+        return 0
+    fi
+    
+    if [[ -f "$local_tarball_path" ]]; then
+        info "Using existing downloaded tarball: $local_tarball_path"
+        echo "$local_tarball_path"
+        return 0
+    fi
+    
+    info "Downloading Apache Ozone $OZONE_VERSION locally for distribution..."
+    
+    # Download Ozone locally
+    if command -v wget >/dev/null 2>&1; then
+        if wget "$download_url" -O "$local_tarball_path"; then
+            info "Successfully downloaded Ozone tarball to $local_tarball_path"
+            echo "$local_tarball_path"
+            return 0
+        fi
+    elif command -v curl >/dev/null 2>&1; then
+        if curl -L "$download_url" -o "$local_tarball_path"; then
+            info "Successfully downloaded Ozone tarball to $local_tarball_path"
+            echo "$local_tarball_path"
+            return 0
+        fi
+    else
+        error "Neither wget nor curl found. Cannot download Ozone."
+        return 1
+    fi
+    
+    error "Failed to download Ozone from $download_url"
+    return 1
+}
+
 # Function to download and install Ozone
 install_ozone() {
     local host=$1
+    local local_tarball_path=$2
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
     
     info "Installing Apache Ozone on $host"
     
-    # Expand the download URL with the actual version
+    # Expand the download URL with the actual version for fallback
     local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
     
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
@@ -585,26 +628,73 @@ install_ozone() {
             return 0
         fi
         
-        echo \"Downloading Apache Ozone $OZONE_VERSION...\"
-        
-        # Create temporary directory for download
+        # Create temporary directory for installation
         temp_dir=\"/tmp/ozone_install_\$\$\"
         mkdir -p \"\$temp_dir\"
         cd \"\$temp_dir\"
         
-        # Download Ozone
-        if command -v wget >/dev/null 2>&1; then
-            wget \"$download_url\" -O ozone.tar.gz
-        elif command -v curl >/dev/null 2>&1; then
-            curl -L \"$download_url\" -o ozone.tar.gz
+        echo \"Ozone tarball will be transferred from installer machine...\"
+    "
+    
+    # Try to SCP the tarball to the remote host
+    if [[ -n "$local_tarball_path" ]] && [[ -f "$local_tarball_path" ]]; then
+        info "Transferring Ozone tarball to $host via SCP..."
+        if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_$$/ozone.tar.gz"; then
+            info "Successfully transferred tarball to $host"
         else
-            echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
-            exit 1
+            warn "Failed to transfer tarball to $host via SCP, falling back to direct download"
+            # Fallback to direct download on the remote host
+            ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+                cd \"/tmp/ozone_install_\$\$\"
+                echo \"Downloading Apache Ozone $OZONE_VERSION directly...\"
+                
+                if command -v wget >/dev/null 2>&1; then
+                    wget \"$download_url\" -O ozone.tar.gz
+                elif command -v curl >/dev/null 2>&1; then
+                    curl -L \"$download_url\" -o ozone.tar.gz
+                else
+                    echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
+                    exit 1
+                fi
+                
+                # Verify download
+                if [[ ! -f ozone.tar.gz ]]; then
+                    echo \"ERROR: Failed to download Ozone from $download_url\"
+                    exit 1
+                fi
+            "
         fi
+    else
+        warn "No local tarball available, falling back to direct download on $host"
+        # Fallback to direct download on the remote host
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+            cd \"/tmp/ozone_install_\$\$\"
+            echo \"Downloading Apache Ozone $OZONE_VERSION directly...\"
+            
+            if command -v wget >/dev/null 2>&1; then
+                wget \"$download_url\" -O ozone.tar.gz
+            elif command -v curl >/dev/null 2>&1; then
+                curl -L \"$download_url\" -o ozone.tar.gz
+            else
+                echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
+                exit 1
+            fi
+            
+            # Verify download
+            if [[ ! -f ozone.tar.gz ]]; then
+                echo \"ERROR: Failed to download Ozone from $download_url\"
+                exit 1
+            fi
+        "
+    fi
+    
+    # Continue with extraction and installation on remote host
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        cd \"/tmp/ozone_install_\$\$\"
         
-        # Verify download
+        # Verify tarball exists
         if [[ ! -f ozone.tar.gz ]]; then
-            echo \"ERROR: Failed to download Ozone from $download_url\"
+            echo \"ERROR: Ozone tarball not found\"
             exit 1
         fi
         
@@ -716,6 +806,14 @@ main() {
     jdk_version=$(ask_jdk_version)
     log "Selected JDK version: $jdk_version"
     
+    # Download Ozone tarball centrally for distribution
+    log "Downloading Ozone tarball centrally for efficient distribution..."
+    local_tarball_path=$(download_ozone_centrally)
+    if [[ $? -ne 0 ]] || [[ -z "$local_tarball_path" ]]; then
+        warn "Failed to download Ozone centrally, will fall back to individual downloads"
+        local_tarball_path=""
+    fi
+    
     # Configure each host
     for host in "${HOSTS[@]}"; do
         host=$(echo "$host" | xargs)
@@ -751,10 +849,16 @@ main() {
         install_time_sync "$host"
         
         # Install Apache Ozone
-        install_ozone "$host"
+        install_ozone "$host" "$local_tarball_path"
         
         log "Host $host configuration completed"
     done
+    
+    # Clean up centrally downloaded tarball if it was downloaded by us
+    if [[ -n "$local_tarball_path" ]] && [[ "$local_tarball_path" == "/tmp/ozone-"* ]]; then
+        log "Cleaning up centrally downloaded tarball: $local_tarball_path"
+        rm -f "$local_tarball_path"
+    fi
     
     log "Ozone Installer completed successfully"
     log "Next steps:"

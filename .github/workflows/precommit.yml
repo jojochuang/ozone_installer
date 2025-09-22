@@ -81,6 +81,11 @@ jobs:
           fi
         done
 
+    - name: Run precommit tests (command options and unit tests)
+      run: |
+        echo "Running precommit tests for shell script command options and functions..."
+        make test-precommit
+
   markdown-checks:
     name: Markdown Checks
     runs-on: ubuntu-latest

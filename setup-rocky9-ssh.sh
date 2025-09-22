@@ -60,10 +60,17 @@ run_container() {
     docker run -d \
         --name $CONTAINER_NAME \
         -p $SSH_PORT:22 \
+        -p 9874:9874 \
+        -p 9876:9876 \
+        -p 9888:9888 \
+        -p 9878:9878 \
+        -p 14000:14000 \
+        -p 9882:9882 \
         $IMAGE_NAME
     
     echo "Container started successfully: $CONTAINER_NAME"
     echo "SSH port mapped to: $SSH_PORT"
+    echo "Ozone service ports exposed: 9874, 9876, 9888, 9878, 14000, 9882"
 }
 
 # Function to copy SSH public key to container
@@ -132,6 +139,14 @@ show_connection_info() {
     echo "  Username: rocky"
     echo "  Private key: $SSH_KEY_NAME"
     echo "  Public key: $SSH_KEY_NAME.pub"
+    echo
+    echo "Ozone service ports exposed:"
+    echo "  OM Web UI: http://localhost:9874"
+    echo "  SCM Web UI: http://localhost:9876"
+    echo "  Recon Web UI: http://localhost:9888"
+    echo "  S3 Gateway: http://localhost:9878"
+    echo "  HttpFS: http://localhost:14000"
+    echo "  Datanode Web UI: http://localhost:9882"
     echo
     echo "To stop the container:"
     echo "  docker stop $CONTAINER_NAME"

@@ -1,0 +1,8 @@
+# ShellCheck configuration for ozone installer scripts
+# This file configures shellcheck to ignore certain warnings that are
+# acceptable in the context of these installer scripts
+
+# Disable warnings for:
+# SC1090: ShellCheck can't follow non-constant source
+# SC2034: Variable appears unused (common with color variables)
+disable=SC1090,SC2034

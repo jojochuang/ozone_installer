@@ -32,6 +32,10 @@ info() {
     echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
 }
 
+info() {
+    echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
+}
+
 # Function to load configuration
 load_config() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -214,7 +218,7 @@ start_scm() {
         fi
         
         # Check if SCM is already running
-        if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
             echo "SCM is already running"
         else
             echo "Starting SCM in background..."
@@ -262,7 +266,7 @@ start_om() {
         fi
         
         # Check if OM is already running
-        if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
             echo "OM is already running"
         else
             echo "Starting OM in background..."
@@ -310,7 +314,7 @@ start_datanode() {
         fi
         
         # Check if DataNode is already running
-        if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
             echo "DataNode is already running"
         else
             echo "Starting DataNode in background..."
@@ -358,7 +362,7 @@ start_recon() {
         fi
         
         # Check if Recon is already running
-        if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "Recon is already running"
         else
             echo "Starting Recon in background..."
@@ -443,26 +447,36 @@ check_service_status() {
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         echo "Checking running Ozone processes:"
         
-        if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
-            echo "  ✓ SCM is running (PID: $(pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager"))"
+        # Helper function to get PID using ps + grep (portable alternative to pgrep)
+        get_process_pid() {
+            local pattern="$1"
+            ps -eo pid,args | grep -v grep | grep "$pattern" | awk "{print \$1}" | head -1
+        }
+        
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
+            pid=$(get_process_pid "org.apache.hadoop.hdds.scm.server.StorageContainerManager")
+            echo "  ✓ SCM is running (PID: $pid)"
         else
             echo "  ✗ SCM is not running"
         fi
         
-        if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
-            echo "  ✓ OM is running (PID: $(pgrep -f "org.apache.hadoop.ozone.om.OzoneManager"))"
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
+            pid=$(get_process_pid "org.apache.hadoop.ozone.om.OzoneManager")
+            echo "  ✓ OM is running (PID: $pid)"
         else
             echo "  ✗ OM is not running"
         fi
         
-        if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
-            echo "  ✓ DataNode is running (PID: $(pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService"))"
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
+            pid=$(get_process_pid "org.apache.hadoop.ozone.HddsDatanodeService")
+            echo "  ✓ DataNode is running (PID: $pid)"
         else
             echo "  ✗ DataNode is not running"
         fi
         
-        if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
-            echo "  ✓ Recon is running (PID: $(pgrep -f "org.apache.hadoop.ozone.recon.ReconServer"))"
+        if ps -eo pid,args | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
+            pid=$(get_process_pid "org.apache.hadoop.ozone.recon.ReconServer")
+            echo "  ✓ Recon is running (PID: $pid)"
         else
             echo "  ✗ Recon is not running"
         fi

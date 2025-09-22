@@ -13,6 +13,7 @@ This installer provides automated setup and configuration for Apache Ozone clust
 - Time synchronization setup
 - Ozone configuration generation
 - Service startup and management
+- Optional Prometheus and Grafana installation for observability
 
 ## Files
 
@@ -35,6 +36,7 @@ Edit `ozone_installer.conf` to specify:
 - SSH credentials, port, and key file location
 - Ozone installation settings (version, installation directory)
 - Ozone directory paths for different components
+- Observability tools settings (Prometheus and Grafana)
 
 Example:
 ```bash
@@ -46,6 +48,13 @@ SSH_PORT="2222"
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
+
+# Observability Configuration (optional, enabled by default)
+INSTALL_PROMETHEUS="true"  # Set to "false" to disable
+INSTALL_GRAFANA="true"     # Set to "false" to disable
+PROMETHEUS_VERSION="2.54.1"
+PROMETHEUS_PORT="9090"
+GRAFANA_PORT="3000"
 ```
 
 ## Usage
@@ -64,6 +73,7 @@ This will:
 - Install selected JDK version
 - Install and configure time synchronization
 - Download and install Apache Ozone binary
+- Install Prometheus and Grafana (if enabled in configuration)
 
 ### 2. Generate configuration files:
 ```bash
@@ -113,9 +123,14 @@ The installer automatically configures:
 
 After successful startup, access these web interfaces:
 
+### Ozone Web UIs
 - SCM Web UI: `http://<primary-host>:9876`
 - OM Web UI: `http://<primary-host>:9874`
 - Recon Web UI: `http://<primary-host>:9888`
+
+### Observability Web UIs (if installed)
+- Prometheus Web UI: `http://<primary-host>:9090`
+- Grafana Web UI: `http://<primary-host>:3000` (default credentials: admin/admin)
 
 ## Troubleshooting
 

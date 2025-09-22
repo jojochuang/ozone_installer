@@ -72,7 +72,7 @@ This will:
 
 Creates and distributes:
 - `core-site.xml`
-- `ozone-site.xml` 
+- `ozone-site.xml`
 - `log4j.properties`
 
 ### 3. Start Ozone services:
@@ -114,7 +114,7 @@ The installer automatically configures:
 After successful startup, access these web interfaces:
 
 - SCM Web UI: `http://<primary-host>:9876`
-- OM Web UI: `http://<primary-host>:9874` 
+- OM Web UI: `http://<primary-host>:9874`
 - Recon Web UI: `http://<primary-host>:9888`
 
 ## Troubleshooting

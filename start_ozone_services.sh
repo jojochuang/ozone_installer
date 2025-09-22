@@ -369,6 +369,102 @@ start_recon() {
     '
 }
 
+# Function to start S3 Gateway
+start_s3gateway() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Starting S3 Gateway on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Set up environment variables
+        export JAVA_HOME=/usr/lib/jvm/java
+        export OZONE_HOME=/opt/ozone
+        export PATH="$OZONE_HOME/bin:$PATH"
+
+        # Find and use the actual JAVA_HOME if java is installed
+        if command -v java >/dev/null 2>&1; then
+            java_bin=$(which java)
+            if [[ -L "$java_bin" ]]; then
+                java_bin=$(readlink -f "$java_bin")
+            fi
+            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+        fi
+
+        # Find ozone binary and set OZONE_HOME accordingly
+        if command -v ozone >/dev/null 2>&1; then
+            OZONE_CMD="ozone"
+        elif [[ -f /opt/ozone/bin/ozone ]]; then
+            OZONE_CMD="/opt/ozone/bin/ozone"
+            export OZONE_HOME=/opt/ozone
+        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
+            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            export OZONE_HOME=/usr/local/ozone
+        else
+            echo "ERROR: Ozone command not found"
+            exit 1
+        fi
+
+        # Check if S3 Gateway is already running
+        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
+            echo "S3 Gateway is already running"
+        else
+            echo "Starting S3 Gateway in background..."
+            nohup $OZONE_CMD --daemon start s3g > /tmp/s3gateway.log 2>&1 &
+            sleep 5
+            echo "S3 Gateway startup initiated"
+        fi
+    '
+}
+
+# Function to start HttpFS
+start_httpfs() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Starting HttpFS on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Set up environment variables
+        export JAVA_HOME=/usr/lib/jvm/java
+        export OZONE_HOME=/opt/ozone
+        export PATH="$OZONE_HOME/bin:$PATH"
+
+        # Find and use the actual JAVA_HOME if java is installed
+        if command -v java >/dev/null 2>&1; then
+            java_bin=$(which java)
+            if [[ -L "$java_bin" ]]; then
+                java_bin=$(readlink -f "$java_bin")
+            fi
+            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+        fi
+
+        # Find ozone binary and set OZONE_HOME accordingly
+        if command -v ozone >/dev/null 2>&1; then
+            OZONE_CMD="ozone"
+        elif [[ -f /opt/ozone/bin/ozone ]]; then
+            OZONE_CMD="/opt/ozone/bin/ozone"
+            export OZONE_HOME=/opt/ozone
+        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
+            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            export OZONE_HOME=/usr/local/ozone
+        else
+            echo "ERROR: Ozone command not found"
+            exit 1
+        fi
+
+        # Check if HttpFS is already running
+        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
+            echo "HttpFS is already running"
+        else
+            echo "Starting HttpFS in background..."
+            nohup $OZONE_CMD --daemon start httpfs > /tmp/httpfs.log 2>&1 &
+            sleep 5
+            echo "HttpFS startup initiated"
+        fi
+    '
+}
+
 # Function to wait for safe mode exit
 wait_for_safe_mode_exit() {
     local primary_host=$1
@@ -466,6 +562,18 @@ check_service_status() {
         else
             echo "  ✗ Recon is not running"
         fi
+
+        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
+            echo "  ✓ S3 Gateway is running (PID: $(pgrep -f "org.apache.hadoop.ozone.s3.Gateway"))"
+        else
+            echo "  ✗ S3 Gateway is not running"
+        fi
+
+        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
+            echo "  ✓ HttpFS is running (PID: $(pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp"))"
+        else
+            echo "  ✗ HttpFS is not running"
+        fi
     '
 }
 
@@ -523,6 +631,12 @@ main() {
     # Start Recon on primary host
     start_recon "$primary_host"
 
+    # Start S3 Gateway on primary host
+    start_s3gateway "$primary_host"
+
+    # Start HttpFS on primary host
+    start_httpfs "$primary_host"
+
     # Wait for services to fully start
     log "Waiting for services to start up..."
     sleep 30
@@ -542,6 +656,8 @@ main() {
     log "  SCM Web UI: http://$primary_host:9876"
     log "  OM Web UI: http://$primary_host:9874"
     log "  Recon Web UI: http://$primary_host:9888"
+    log "  S3 Gateway: http://$primary_host:9878"
+    log "  HttpFS: http://$primary_host:14000"
     log ""
     log "To check cluster status:"
     log "  ozone admin safemode status"

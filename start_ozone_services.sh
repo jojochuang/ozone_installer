@@ -104,6 +104,7 @@ format_scm() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/scm
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -130,7 +131,7 @@ format_scm() {
         fi
 
         # Format SCM if not already formatted
-        echo "Formatting SCM..."
+        echo "Formatting SCM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
         $OZONE_CMD scm --init || echo "SCM may already be formatted"
     '
 }
@@ -146,6 +147,7 @@ format_om() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/om
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -172,7 +174,7 @@ format_om() {
         fi
 
         # Format OM if not already formatted
-        echo "Formatting OM..."
+        echo "Formatting OM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
         $OZONE_CMD om --init || echo "OM may already be formatted"
     '
 }
@@ -188,6 +190,7 @@ start_scm() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/scm
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -217,7 +220,7 @@ start_scm() {
         if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
             echo "SCM is already running"
         else
-            echo "Starting SCM in background..."
+            echo "Starting SCM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start scm > /tmp/scm.log 2>&1 &
             sleep 5
             echo "SCM startup initiated"
@@ -236,6 +239,7 @@ start_om() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/om
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -265,7 +269,7 @@ start_om() {
         if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
             echo "OM is already running"
         else
-            echo "Starting OM in background..."
+            echo "Starting OM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start om > /tmp/om.log 2>&1 &
             sleep 5
             echo "OM startup initiated"
@@ -284,6 +288,7 @@ start_datanode() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/datanode
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -313,7 +318,7 @@ start_datanode() {
         if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
             echo "DataNode is already running"
         else
-            echo "Starting DataNode in background..."
+            echo "Starting DataNode in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start datanode > /tmp/datanode.log 2>&1 &
             sleep 5
             echo "DataNode startup initiated"
@@ -332,6 +337,7 @@ start_recon() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/recon
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -361,7 +367,7 @@ start_recon() {
         if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "Recon is already running"
         else
-            echo "Starting Recon in background..."
+            echo "Starting Recon in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
             sleep 5
             echo "Recon startup initiated"

@@ -56,7 +56,7 @@ syntax: ## Check shell script syntax
 permissions: ## Check executable permissions on shell scripts
 	@echo "Checking executable permissions on shell scripts..."
 	@find . -name "*.sh" -type f | while read -r script; do \
-		if [[ ! -x "$$script" ]]; then \
+		if [ ! -x "$$script" ]; then \
 			echo "❌ $$script is not executable"; \
 			echo "Fix with: chmod +x $$script"; \
 		else \

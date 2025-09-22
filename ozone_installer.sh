@@ -642,16 +642,29 @@ transfer_tarball_parallel() {
         (
             # Create temporary directory on remote host first
             # Use a consistent directory name that install_ozone() will also use
-            ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+            if ! ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
                 temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
                 mkdir -p \"\$temp_dir\"
-            " 2>/dev/null
+            " 2>/dev/null; then
+                echo "FAILED:$host:mkdir"
+                exit 1
+            fi
             
             # Transfer the tarball
             if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
-                echo "SUCCESS:$host"
+                # Verify the transfer was successful by checking file size
+                local_size=$(stat -c%s "$local_tarball_path" 2>/dev/null || echo "0")
+                remote_size=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "stat -c%s /tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz 2>/dev/null || echo 0" 2>/dev/null)
+                
+                if [[ "$local_size" == "$remote_size" ]] && [[ "$local_size" -gt 0 ]]; then
+                    echo "SUCCESS:$host"
+                else
+                    echo "FAILED:$host:size_mismatch"
+                    exit 1
+                fi
             else
-                echo "FAILED:$host"
+                echo "FAILED:$host:scp"
+                exit 1
             fi
         ) &
         
@@ -661,14 +674,35 @@ transfer_tarball_parallel() {
     done
     
     # Wait for all remaining transfers to complete
+    local failed_hosts=()
+    local success_count=0
+    
     for pid in "${pids[@]}"; do
         if [[ -n "$pid" ]]; then
             wait "$pid"
-            result=$(jobs -p | grep -q "$pid" || echo "completed")
+            # The background process output should contain SUCCESS:host or FAILED:host
         fi
     done
     
-    info "All parallel tarball transfers completed"
+    # Count successful transfers by checking if tarballs actually exist on remote hosts
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+        if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -f /tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
+            ((success_count++))
+            info "Verified tarball on $host"
+        else
+            failed_hosts+=("$host")
+            warn "Tarball verification failed on $host"
+        fi
+    done
+    
+    info "Parallel tarball transfers completed: $success_count/${#hosts[@]} successful"
+    
+    if [[ ${#failed_hosts[@]} -gt 0 ]]; then
+        warn "Failed transfers to: ${failed_hosts[*]}"
+        return 1
+    fi
+    
     return 0
 }
 
@@ -847,8 +881,16 @@ main() {
     fi
 
     # Perform parallel tarball transfer to all hosts (if tarball available)
+    parallel_transfer_success=false
     if [[ -n "$local_tarball_path" ]] && [[ -f "$local_tarball_path" ]]; then
-        transfer_tarball_parallel "$local_tarball_path" "${HOSTS[@]}"
+        if transfer_tarball_parallel "$local_tarball_path" "${HOSTS[@]}"; then
+            parallel_transfer_success=true
+            log "Parallel tarball transfers completed successfully"
+        else
+            warn "Some parallel tarball transfers failed - affected hosts will fall back to direct download"
+        fi
+    else
+        log "No local tarball available - hosts will download directly from Apache"
     fi
 
     # Configure each host

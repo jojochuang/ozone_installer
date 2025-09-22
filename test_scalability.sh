@@ -44,7 +44,12 @@ echo "   Result: $result"
 echo "   ✅ SUCCESS: Function correctly uses custom tarball path"
 echo
 
-echo "3. Scalability Comparison:"
+echo "3. Testing parallel transfer function..."
+export MAX_CONCURRENT_TRANSFERS=3
+declare -f transfer_tarball_parallel > /dev/null && echo "   ✅ SUCCESS: Parallel transfer function available"
+echo
+
+echo "4. Scalability Comparison:"
 echo
 echo "   OLD APPROACH (Not Scalable):"
 echo "   📊 For 100 hosts: 100 downloads from Apache servers"
@@ -52,17 +57,19 @@ echo "   ⚠️  Risk of rate limiting"
 echo "   🐌 Slow due to external bandwidth limits"
 echo "   📈 Network load: 100 × tarball_size"
 echo
-echo "   NEW APPROACH (Scalable):"
-echo "   📊 For 100 hosts: 1 download + 100 SCP transfers"
+echo "   NEW APPROACH (Highly Scalable):"
+echo "   📊 For 100 hosts: 1 download + parallel SCP transfers (max 10 concurrent)"
 echo "   ✅ No rate limiting concerns"
-echo "   🚀 Fast internal network transfers"
+echo "   🚀 Fast internal network transfers with parallelization"
 echo "   📉 External load: 1 × tarball_size"
+echo "   ⚡ Concurrent transfers: Up to 10 hosts simultaneously"
 echo "   🔄 Fallback to old method if SCP fails"
 echo
 
-echo "4. Configuration Options:"
+echo "5. Configuration Options:"
 echo "   • Use default download: (no LOCAL_TARBALL_PATH set)"
 echo "   • Use pre-downloaded file: LOCAL_TARBALL_PATH='/path/to/ozone.tar.gz'"
+echo "   • Configure parallel transfers: MAX_CONCURRENT_TRANSFERS=10 (default)"
 echo "   • Script automatically manages temporary files"
 echo
 

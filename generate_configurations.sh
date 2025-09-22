@@ -34,7 +34,7 @@ load_config() {
         error "Configuration file not found: $CONFIG_FILE"
         exit 1
     fi
-    
+
     # Source the configuration file
     source "$CONFIG_FILE"
 }
@@ -42,9 +42,9 @@ load_config() {
 # Function to create core-site.xml
 create_core_site_xml() {
     local output_file="$1"
-    
+
     log "Creating core-site.xml at $output_file"
-    
+
     cat > "$output_file" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
@@ -68,12 +68,12 @@ create_core_site_xml() {
     <value>ofs://ozone1/</value>
     <description>The default filesystem URI</description>
   </property>
-  
+
   <property>
     <name>fs.ofs.impl</name>
     <value>org.apache.hadoop.fs.ozone.OzoneFileSystem</value>
   </property>
-  
+
   <property>
     <name>fs.AbstractFileSystem.ofs.impl</name>
     <value>org.apache.hadoop.fs.ozone.OzFs</value>
@@ -85,13 +85,13 @@ EOF
 # Function to create ozone-site.xml
 create_ozone_site_xml() {
     local output_file="$1"
-    
+
     log "Creating ozone-site.xml at $output_file"
-    
+
     # Get the first host as SCM and OM leader
     IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
     local primary_host=$(echo "${HOSTS[0]}" | xargs)
-    
+
     cat > "$output_file" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
@@ -116,101 +116,107 @@ create_ozone_site_xml() {
     <value>$primary_host</value>
     <description>The hostname or IP address of the Storage Container Manager</description>
   </property>
-  
+
+  <property>
+    <name>ozone.scm.client.address</name>
+    <value>$primary_host:9863</value>
+    <description>The address and port for the SCM client</description>
+  </property>
+
   <property>
     <name>ozone.scm.db.dirs</name>
     <value>$OZONE_SCM_DB_DIRS</value>
     <description>SCM metadata storage directory</description>
   </property>
-  
+
   <property>
     <name>ozone.scm.ha.ratis.storage.dir</name>
     <value>$OZONE_SCM_HA_RATIS_STORAGE_DIR</value>
     <description>SCM Ratis storage directory</description>
   </property>
-  
+
   <property>
     <name>ozone.metadata.dirs</name>
     <value>$OZONE_SCM_METADATA_DIRS</value>
     <description>SCM metadata directory</description>
   </property>
-  
+
   <!-- Ozone Manager (OM) Configuration -->
   <property>
     <name>ozone.om.address</name>
     <value>$primary_host</value>
     <description>The hostname or IP address of the Ozone Manager</description>
   </property>
-  
+
   <property>
     <name>ozone.om.db.dirs</name>
     <value>$OZONE_OM_DB_DIR</value>
     <description>OM metadata storage directory</description>
   </property>
-  
+
   <property>
     <name>ozone.om.ratis.storage.dir</name>
     <value>$OZONE_OM_RATIS_STORAGE_DIR</value>
     <description>OM Ratis storage directory</description>
   </property>
-  
+
   <!-- Recon Configuration -->
   <property>
     <name>ozone.recon.address</name>
     <value>$primary_host</value>
     <description>The hostname or IP address of Recon</description>
   </property>
-  
+
   <property>
     <name>ozone.recon.db.dir</name>
     <value>$OZONE_RECON_DB_DIR</value>
     <description>Recon database directory</description>
   </property>
-  
+
   <property>
     <name>ozone.recon.scm.db.dirs</name>
     <value>$OZONE_RECON_SCM_DB_DIRS</value>
     <description>Recon SCM database directory</description>
   </property>
-  
+
   <property>
     <name>ozone.recon.om.db.dir</name>
     <value>$OZONE_RECON_OM_DB_DIR</value>
     <description>Recon OM database directory</description>
   </property>
-  
+
   <!-- DataNode Configuration -->
   <property>
     <name>ozone.scm.datanode.id.dir</name>
     <value>$OZONE_SCM_DATANODE_ID_DIR</value>
     <description>DataNode ID storage directory</description>
   </property>
-  
+
   <property>
     <name>dfs.container.ratis.datanode.storage.dir</name>
     <value>$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR</value>
     <description>DataNode Ratis storage directory</description>
   </property>
-  
+
   <property>
     <name>hdds.datanode.dir</name>
     <value>$HDDS_DATANODE_DIR</value>
     <description>DataNode data storage directory</description>
   </property>
-  
+
   <!-- General Configuration -->
   <property>
     <name>ozone.enabled</name>
     <value>true</value>
     <description>Enable Ozone in the cluster</description>
   </property>
-  
+
   <property>
     <name>ozone.security.enabled</name>
     <value>false</value>
     <description>Security is disabled for simplicity in this setup</description>
   </property>
-  
+
 </configuration>
 EOF
 }
@@ -218,9 +224,9 @@ EOF
 # Function to create log4j.properties
 create_log4j_properties() {
     local output_file="$1"
-    
+
     log "Creating log4j.properties at $output_file"
-    
+
     cat > "$output_file" << 'EOF'
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -379,39 +385,39 @@ EOF
 # Function to distribute configuration files to all hosts
 distribute_configs() {
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     # Create output directory if it doesn't exist
     local output_dir="./ozone-config"
     mkdir -p "$output_dir"
-    
+
     # Create configuration files locally first
     create_core_site_xml "$output_dir/core-site.xml"
     create_ozone_site_xml "$output_dir/ozone-site.xml"
     create_log4j_properties "$output_dir/log4j.properties"
-    
+
     # Convert CLUSTER_HOSTS to array
     IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
-    
+
     # Distribute to each host
     for host in "${HOSTS[@]}"; do
         host=$(echo "$host" | xargs)
-        
+
         info "Distributing configuration files to $host"
-        
+
         # Create Ozone configuration directory on remote host
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             sudo mkdir -p /etc/hadoop/conf
             sudo mkdir -p /opt/ozone/etc/hadoop
         "
-        
+
         # Copy configuration files to temporary location first, then move with sudo
         temp_dir="/tmp/ozone_config_$$"
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "mkdir -p $temp_dir"
-        
+
         scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/core-site.xml" "$SSH_USER@$host:$temp_dir/"
         scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/ozone-site.xml" "$SSH_USER@$host:$temp_dir/"
         scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/log4j.properties" "$SSH_USER@$host:$temp_dir/"
-        
+
         # Move files to final destinations with sudo
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             sudo mv $temp_dir/core-site.xml /etc/hadoop/conf/
@@ -419,14 +425,14 @@ distribute_configs() {
             sudo mv $temp_dir/log4j.properties /etc/hadoop/conf/
             rm -rf $temp_dir
         "
-        
+
         # Also copy to Ozone directory
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             sudo cp /etc/hadoop/conf/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
             sudo cp /etc/hadoop/conf/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
             sudo cp /etc/hadoop/conf/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
         "
-        
+
         log "Configuration files distributed to $host"
     done
 }
@@ -434,18 +440,18 @@ distribute_configs() {
 # Main function
 main() {
     log "Starting Ozone Configuration Generator"
-    
+
     # Load configuration
     load_config
-    
+
     if [[ -z "$CLUSTER_HOSTS" ]]; then
         error "CLUSTER_HOSTS is empty in configuration file"
         exit 1
     fi
-    
+
     # Generate and distribute configuration files
     distribute_configs
-    
+
     log "Ozone configuration files generated and distributed successfully"
     log "Configuration files are available in:"
     log "  - Local: ./ozone-config/"

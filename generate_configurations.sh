@@ -408,7 +408,7 @@ distribute_configs() {
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             # Client configurations (for OZONE_CONF_DIR)
             sudo mkdir -p /etc/hadoop
-            
+
             # Server role-specific configurations
             sudo mkdir -p /opt/ozone/conf/om
             sudo mkdir -p /opt/ozone/conf/scm
@@ -416,7 +416,7 @@ distribute_configs() {
             sudo mkdir -p /opt/ozone/conf/recon
             sudo mkdir -p /opt/ozone/conf/s3g
             sudo mkdir -p /opt/ozone/conf/httpfs
-            
+
             # Legacy directories for backward compatibility
             sudo mkdir -p /opt/ozone/etc/hadoop
         "
@@ -435,42 +435,42 @@ distribute_configs() {
             sudo cp $temp_dir/core-site.xml /etc/hadoop/
             sudo cp $temp_dir/ozone-site.xml /etc/hadoop/
             sudo cp $temp_dir/log4j.properties /etc/hadoop/
-            
+
             # OM configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/om/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/om/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/om/
-            
+
             # SCM configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/scm/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/scm/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/scm/
-            
+
             # DataNode configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/datanode/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/datanode/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/datanode/
-            
+
             # Recon configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/recon/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/recon/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/recon/
-            
+
             # S3G configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/s3g/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/s3g/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/s3g/
-            
+
             # HttpFS configurations
             sudo cp $temp_dir/core-site.xml /opt/ozone/conf/httpfs/
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/httpfs/
             sudo cp $temp_dir/log4j.properties /opt/ozone/conf/httpfs/
-            
+
             # Legacy directories for backward compatibility
             sudo cp $temp_dir/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
             sudo cp $temp_dir/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
             sudo cp $temp_dir/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
-            
+
             rm -rf $temp_dir
         "
 

@@ -159,8 +159,10 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 3. Connect to the container:
    ```bash
-   ssh -i rocky9_key -p 2222 rocky@localhost
+   ssh -i rocky9_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 rocky@localhost
    ```
+
+   **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
 
 ### Script Options
 
@@ -209,6 +211,7 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 2. **Port conflict**: If port 2222 is in use, modify the `SSH_PORT` variable in the script
 3. **SSH connection fails**: Wait a few seconds for the SSH daemon to fully start, then try again
 4. **Permission denied**: Ensure the SSH key files have correct permissions (600 for private key)
+5. **SSH host key verification failed**: If you see "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!" error, this is normal when containers are rebuilt. The script automatically handles this by cleaning up old host keys and using appropriate SSH options.
 
 ### Files
 

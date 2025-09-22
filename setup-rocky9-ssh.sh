@@ -90,6 +90,17 @@ setup_ssh_access() {
     echo "SSH access configured successfully"
 }
 
+# Function to clean up old host keys from known_hosts
+cleanup_known_hosts() {
+    echo "Cleaning up old SSH host keys..."
+    
+    # Remove any existing entries for localhost:2222 from known_hosts
+    if [ -f ~/.ssh/known_hosts ]; then
+        ssh-keygen -R "[localhost]:$SSH_PORT" 2>/dev/null || true
+        echo "Old host keys removed from known_hosts"
+    fi
+}
+
 # Function to test SSH connection
 test_ssh_connection() {
     echo "Testing SSH connection..."
@@ -97,12 +108,12 @@ test_ssh_connection() {
     # Wait a bit more for SSH daemon to be fully ready
     sleep 2
     
-    # Test SSH connection
-    if ssh -i "$SSH_KEY_NAME" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p $SSH_PORT rocky@localhost "echo 'SSH connection successful!'" 2>/dev/null; then
+    # Test SSH connection with proper host key handling
+    if ssh -i "$SSH_KEY_NAME" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -p $SSH_PORT rocky@localhost "echo 'SSH connection successful!'" 2>/dev/null; then
         echo "✓ SSH connection test passed!"
     else
         echo "⚠ SSH connection test failed. You may need to wait a moment for the SSH daemon to fully start."
-        echo "Try connecting manually with: ssh -i $SSH_KEY_NAME -p $SSH_PORT rocky@localhost"
+        echo "Try connecting manually with: ssh -i $SSH_KEY_NAME -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_PORT rocky@localhost"
     fi
 }
 
@@ -111,7 +122,10 @@ show_connection_info() {
     echo
     echo "=== Connection Information ==="
     echo "To connect to the Rocky9 container:"
-    echo "  ssh -i $SSH_KEY_NAME -p $SSH_PORT rocky@localhost"
+    echo "  ssh -i $SSH_KEY_NAME -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_PORT rocky@localhost"
+    echo
+    echo "Note: For development containers, host key checking is disabled to avoid"
+    echo "      connection issues when containers are rebuilt with new SSH host keys."
     echo
     echo "Container details:"
     echo "  Container name: $CONTAINER_NAME"
@@ -136,6 +150,7 @@ main() {
         "start")
             echo "Starting Rocky9 container setup..."
             cleanup
+            cleanup_known_hosts
             generate_ssh_key
             build_image
             run_container
@@ -155,7 +170,7 @@ main() {
             ;;
         "connect")
             echo "Connecting to Rocky9 container..."
-            ssh -i "$SSH_KEY_NAME" -p $SSH_PORT rocky@localhost
+            ssh -i "$SSH_KEY_NAME" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_PORT rocky@localhost
             ;;
         "info")
             show_connection_info

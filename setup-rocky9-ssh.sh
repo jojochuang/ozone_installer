@@ -59,7 +59,6 @@ run_container() {
     echo "Starting Rocky9 container..."
     docker run -d \
         --name $CONTAINER_NAME \
-        --privileged \
         -p $SSH_PORT:22 \
         $IMAGE_NAME
     

@@ -118,6 +118,12 @@ create_ozone_site_xml() {
   </property>
 
   <property>
+    <name>ozone.scm.client.address</name>
+    <value>$primary_host:9863</value>
+    <description>The address and port for the SCM client</description>
+  </property>
+
+  <property>
     <name>ozone.scm.db.dirs</name>
     <value>$OZONE_SCM_DB_DIRS</value>
     <description>SCM metadata storage directory</description>

@@ -78,6 +78,16 @@ The installer automatically optimizes for large clusters by:
 
 This approach scales efficiently to 100+ hosts without overwhelming Apache's download servers.
 
+### Testing the Scalability Improvements
+
+Run the included test script to see the scalability improvements in action:
+
+```bash
+./test_scalability.sh
+```
+
+This demonstrates how the new approach reduces external downloads from N (number of hosts) to 1.
+
 ### 2. Generate configuration files:
 ```bash
 ./generate_configurations.sh

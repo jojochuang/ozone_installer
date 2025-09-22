@@ -879,14 +879,31 @@ main() {
     # Download Ozone tarball centrally for distribution
     log "Downloading Ozone tarball centrally for efficient distribution..."
     local_tarball_path=$(download_ozone_centrally)
-    if [[ $? -ne 0 ]] || [[ -z "$local_tarball_path" ]]; then
-        warn "Failed to download Ozone centrally, will fall back to individual downloads"
-        local_tarball_path=""
+    download_exit_code=$?
+    
+    if [[ $download_exit_code -ne 0 ]] || [[ -z "$local_tarball_path" ]]; then
+        warn "Failed to download Ozone centrally (exit code: $download_exit_code, path: '$local_tarball_path')"
+        warn "Will attempt to use existing local files or fall back to individual downloads"
+        
+        # Try to find existing tarball for parallel transfer even if central download failed
+        if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
+            local_tarball_path="$LOCAL_TARBALL_PATH"
+            info "Found existing custom tarball: $LOCAL_TARBALL_PATH"
+        elif [[ -f "/tmp/ozone-${OZONE_VERSION}.tar.gz" ]]; then
+            local_tarball_path="/tmp/ozone-${OZONE_VERSION}.tar.gz"
+            info "Found existing downloaded tarball: $local_tarball_path"
+        else
+            local_tarball_path=""
+            info "No existing tarball found for parallel transfer"
+        fi
+    else
+        info "Successfully obtained tarball for distribution: $local_tarball_path"
     fi
 
     # Perform parallel tarball transfer to all hosts (if tarball available)
     parallel_transfer_success=false
     if [[ -n "$local_tarball_path" ]] && [[ -f "$local_tarball_path" ]]; then
+        log "Starting parallel tarball transfer using: $local_tarball_path"
         if transfer_tarball_parallel "$local_tarball_path" "${HOSTS[@]}"; then
             parallel_transfer_success=true
             log "Parallel tarball transfers completed successfully"
@@ -895,6 +912,7 @@ main() {
         fi
     else
         log "No local tarball available - hosts will download directly from Apache"
+        log "Reasons: local_tarball_path='$local_tarball_path', file_exists=$(test -f "$local_tarball_path" && echo "yes" || echo "no")"
     fi
 
     # Configure each host

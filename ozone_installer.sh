@@ -717,10 +717,10 @@ install_ozone() {
     # Expand the download URL with the actual version
     local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
 
-    # Check if tarball was already transferred via parallel SCP
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Check if Ozone is already installed
-        if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
+    # Check if Ozone is already installed on the remote host
+    if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -f \"$OZONE_INSTALL_DIR/bin/ozone\"" 2>/dev/null; then
+        info "Ozone already installed on $host, running version check..."
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             echo \"Ozone already installed at $OZONE_INSTALL_DIR\"
             # Set up environment variables for version check
             export JAVA_HOME=/usr/lib/jvm/java
@@ -734,9 +734,13 @@ install_ozone() {
                 export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
             fi
             \"$OZONE_INSTALL_DIR/bin/ozone\" version
-            return 0
-        fi
+        "
+        info "Skipping installation on $host - Ozone already present"
+        return 0
+    fi
 
+    # Proceed with installation - check if tarball was already transferred via parallel SCP
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Create temporary directory for installation (same as used in parallel transfer)
         temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
         mkdir -p \"\$temp_dir\"

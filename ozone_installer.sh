@@ -641,13 +641,14 @@ transfer_tarball_parallel() {
         # Start transfer for this host in background
         (
             # Create temporary directory on remote host first
+            # Use a consistent directory name that install_ozone() will also use
             ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-                temp_dir=\"/tmp/ozone_install_\$\$\"
+                temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
                 mkdir -p \"\$temp_dir\"
             " 2>/dev/null
             
             # Transfer the tarball
-            if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_$$/ozone.tar.gz" 2>/dev/null; then
+            if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
                 echo "SUCCESS:$host"
             else
                 echo "FAILED:$host"
@@ -702,8 +703,8 @@ install_ozone() {
             return 0
         fi
 
-        # Create temporary directory for installation
-        temp_dir=\"/tmp/ozone_install_\$\$\"
+        # Create temporary directory for installation (same as used in parallel transfer)
+        temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
         mkdir -p \"\$temp_dir\"
         cd \"\$temp_dir\"
 
@@ -711,7 +712,7 @@ install_ozone() {
         if [[ -f \"ozone.tar.gz\" ]]; then
             echo \"Using tarball transferred via parallel SCP\"
         else
-            echo \"Tarball not found, falling back to direct download...\"
+            echo \"Tarball not found in parallel transfer directory, falling back to direct download...\"
             
             if command -v wget >/dev/null 2>&1; then
                 wget \"$download_url\" -O ozone.tar.gz

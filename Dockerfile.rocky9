@@ -1,8 +1,9 @@
 FROM rockylinux:9
 
 # Install SSH server and other essential packages
+# Note: procps-ng was removed as it can interfere with SSH daemon operation
 RUN dnf update -y && \
-    dnf install -y openssh-server sudo which passwd procps-ng && \
+    dnf install -y openssh-server sudo which passwd && \
     dnf clean all
 
 # Create the SSH host keys

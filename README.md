@@ -159,8 +159,10 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 3. Connect to the container:
    ```bash
-   ssh -i rocky9_key -p 2222 rocky@localhost
+   ssh -i rocky9_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 rocky@localhost
    ```
+
+   **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
 
 ### Script Options
 
@@ -192,13 +194,14 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 - **SSH Port**: 2222 (mapped from container port 22)
 - **Username**: rocky
 - **User Privileges**: sudo access without password
-- **Container Mode**: privileged (allows system-level commands like sysctl)
+- **Container Mode**: standard (privileged mode removed to fix SSH connectivity)
 - **SSH Keys**: `rocky9_key` (private) and `rocky9_key.pub` (public)
 
 ### Security Notes
 
 - The container is configured with a user `rocky` that has sudo privileges
-- The container runs in privileged mode to support system-level commands (use with caution)
+- The container runs in standard mode for better SSH compatibility
+- If you need privileged mode for system-level commands (like sysctl), you can manually add `--privileged` to the docker run command in the script
 - Password authentication is enabled as a fallback, but key-based authentication is the primary method
 - Root login via SSH is disabled
 - The SSH keys are generated locally and should be kept secure
@@ -209,6 +212,8 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 2. **Port conflict**: If port 2222 is in use, modify the `SSH_PORT` variable in the script
 3. **SSH connection fails**: Wait a few seconds for the SSH daemon to fully start, then try again
 4. **Permission denied**: Ensure the SSH key files have correct permissions (600 for private key)
+5. **SSH host key verification failed**: If you see "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!" error, this is normal when containers are rebuilt. The script automatically handles this by cleaning up old host keys and using appropriate SSH options.
+6. **SSH connection issues with privileged mode**: The container runs in standard mode by default. If you manually add `--privileged` flag, it may interfere with SSH daemon operation.
 
 ### Files
 

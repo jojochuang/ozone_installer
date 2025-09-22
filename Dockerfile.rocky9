@@ -34,5 +34,8 @@ RUN mkdir -p /run/sshd
 # Expose SSH port
 EXPOSE 22
 
+# Expose Ozone service ports
+EXPOSE 9874 9876 9888 9878 14000 9882
+
 # Start SSH daemon
 CMD ["/usr/sbin/sshd", "-D"]

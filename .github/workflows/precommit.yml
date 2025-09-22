@@ -1,0 +1,141 @@
+name: Precommit Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  shell-checks:
+    name: Shell Script Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install shellcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+
+    - name: Install shfmt
+      run: |
+        curl -L "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64" -o shfmt
+        chmod +x shfmt
+        sudo mv shfmt /usr/local/bin/
+
+    - name: Run shellcheck on all shell scripts
+      run: |
+        echo "Running shellcheck on shell scripts..."
+        # Only fail on errors, not warnings
+        find . -name "*.sh" -type f | while read -r script; do
+          echo "Checking $script"
+          if ! shellcheck -S error "$script"; then
+            echo "❌ $script has shellcheck errors"
+            exit 1
+          else
+            echo "✅ $script passed shellcheck error check"
+            # Show warnings but don't fail
+            shellcheck "$script" || true
+          fi
+        done
+
+    - name: Check shell script formatting with shfmt
+      run: |
+        echo "Checking shell script formatting..."
+        # Make formatting check informational only for now
+        find . -name "*.sh" -type f | while read -r script; do
+          echo "Checking format of $script"
+          if ! shfmt -d "$script" >/dev/null 2>&1; then
+            echo "ℹ️  $script could be reformatted (run: shfmt -w $script)"
+          else
+            echo "✅ $script is properly formatted"
+          fi
+        done
+        echo "ℹ️  Formatting check completed (informational only)"
+
+    - name: Check shell script syntax
+      run: |
+        echo "Checking shell script syntax..."
+        find . -name "*.sh" -type f | while read -r script; do
+          echo "Checking syntax of $script"
+          if ! bash -n "$script"; then
+            echo "❌ $script has syntax errors"
+            exit 1
+          else
+            echo "✅ $script syntax is valid"
+          fi
+        done
+
+    - name: Check executable permissions
+      run: |
+        echo "Checking executable permissions on shell scripts..."
+        find . -name "*.sh" -type f | while read -r script; do
+          if [ ! -x "$script" ]; then
+            echo "❌ $script is not executable"
+            exit 1
+          else
+            echo "✅ $script has correct executable permissions"
+          fi
+        done
+
+  markdown-checks:
+    name: Markdown Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install markdownlint
+      run: |
+        npm install -g markdownlint-cli
+
+    - name: Run markdownlint
+      run: |
+        echo "Running markdownlint on markdown files..."
+        find . -name "*.md" -type f | while read -r mdfile; do
+          echo "Checking $mdfile"
+          markdownlint "$mdfile" || true
+        done
+
+  file-checks:
+    name: File and Repository Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for trailing whitespace
+      run: |
+        echo "Checking for trailing whitespace..."
+        if grep -r '[[:space:]]$' --exclude-dir=.git .; then
+          echo "❌ Found trailing whitespace in files above"
+          exit 1
+        else
+          echo "✅ No trailing whitespace found"
+        fi
+
+    - name: Check line endings
+      run: |
+        echo "Checking for consistent line endings..."
+        find . -type f \( -name "*.sh" -o -name "*.md" -o -name "*.conf" \) | while read -r file; do
+          if file "$file" | grep -q CRLF; then
+            echo "❌ $file has Windows line endings (CRLF)"
+            exit 1
+          fi
+        done
+        echo "✅ All text files have Unix line endings"
+
+    - name: Check for large files
+      run: |
+        echo "Checking for large files (>10MB)..."
+        if find . -type f -size +10M | grep -v '.git/'; then
+          echo "❌ Found large files above"
+          exit 1
+        else
+          echo "✅ No large files found"
+        fi

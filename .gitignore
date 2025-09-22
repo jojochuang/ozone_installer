@@ -18,3 +18,9 @@ rocky9_key.pub
 # OS files
 .DS_Store
 Thumbs.db
+
+# Build and test artifacts
+ozone-config/
+.coverage
+*.bak
+*.backup

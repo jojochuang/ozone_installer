@@ -67,7 +67,7 @@ run_container() {
         -p 14000:14000 \
         -p 9882:9882 \
         $IMAGE_NAME
-    
+
     echo "Container started successfully: $CONTAINER_NAME"
     echo "SSH port mapped to: $SSH_PORT"
     echo "Ozone service ports exposed: 9874, 9876, 9888, 9878, 14000, 9882"
@@ -76,14 +76,14 @@ run_container() {
 # Function to copy SSH public key to container
 setup_ssh_access() {
     echo "Setting up SSH access..."
-    
+
     # Wait for container to be ready
     echo "Waiting for container to be ready..."
     sleep 5
-    
+
     # Copy the public key to the container
     docker cp "$SSH_KEY_NAME.pub" $CONTAINER_NAME:/tmp/authorized_keys
-    
+
     # Set up the authorized_keys file in the container
     docker exec $CONTAINER_NAME bash -c "
         mkdir -p /home/rocky/.ssh
@@ -92,14 +92,14 @@ setup_ssh_access() {
         chmod 600 /home/rocky/.ssh/authorized_keys
         rm /tmp/authorized_keys
     "
-    
+
     echo "SSH access configured successfully"
 }
 
 # Function to clean up old host keys from known_hosts
 cleanup_known_hosts() {
     echo "Cleaning up old SSH host keys..."
-    
+
     # Remove any existing entries for localhost:2222 from known_hosts
     if [ -f ~/.ssh/known_hosts ]; then
         ssh-keygen -R "[localhost]:$SSH_PORT" 2>/dev/null || true
@@ -110,10 +110,10 @@ cleanup_known_hosts() {
 # Function to test SSH connection
 test_ssh_connection() {
     echo "Testing SSH connection..."
-    
+
     # Wait a bit more for SSH daemon to be fully ready
     sleep 2
-    
+
     # Test SSH connection with proper host key handling
     if ssh -i "$SSH_KEY_NAME" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -p $SSH_PORT rocky@localhost "echo 'SSH connection successful!'" 2>/dev/null; then
         echo "✓ SSH connection test passed!"

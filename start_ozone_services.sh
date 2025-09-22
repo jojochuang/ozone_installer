@@ -38,10 +38,10 @@ load_config() {
         error "Configuration file not found: $CONFIG_FILE"
         exit 1
     fi
-    
+
     # Source the configuration file
     source "$CONFIG_FILE"
-    
+
     if [[ -z "$CLUSTER_HOSTS" ]]; then
         error "CLUSTER_HOSTS is empty in configuration file"
         exit 1
@@ -52,15 +52,15 @@ load_config() {
 check_ozone_installation() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Checking Ozone installation on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -69,7 +69,7 @@ check_ozone_installation() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Check if ozone command is available
         if command -v ozone >/dev/null 2>&1; then
             echo "Ozone command found: $(which ozone)"
@@ -97,15 +97,15 @@ check_ozone_installation() {
 format_scm() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Formatting SCM on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -114,7 +114,7 @@ format_scm() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -128,7 +128,7 @@ format_scm() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Format SCM if not already formatted
         echo "Formatting SCM..."
         $OZONE_CMD scm --init || echo "SCM may already be formatted"
@@ -139,15 +139,15 @@ format_scm() {
 format_om() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Formatting OM on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -156,7 +156,7 @@ format_om() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -170,7 +170,7 @@ format_om() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Format OM if not already formatted
         echo "Formatting OM..."
         $OZONE_CMD om --init || echo "OM may already be formatted"
@@ -181,15 +181,15 @@ format_om() {
 start_scm() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Starting SCM on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -198,7 +198,7 @@ start_scm() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -212,7 +212,7 @@ start_scm() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Check if SCM is already running
         if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
             echo "SCM is already running"
@@ -229,15 +229,15 @@ start_scm() {
 start_om() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Starting OM on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -246,7 +246,7 @@ start_om() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -260,7 +260,7 @@ start_om() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Check if OM is already running
         if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
             echo "OM is already running"
@@ -277,15 +277,15 @@ start_om() {
 start_datanode() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Starting DataNode on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -294,7 +294,7 @@ start_datanode() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -308,7 +308,7 @@ start_datanode() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Check if DataNode is already running
         if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
             echo "DataNode is already running"
@@ -325,15 +325,15 @@ start_datanode() {
 start_recon() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Starting Recon on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export PATH="$OZONE_HOME/bin:$PATH"
-        
+
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
             java_bin=$(which java)
@@ -342,7 +342,7 @@ start_recon() {
             fi
             export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
         fi
-        
+
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
             OZONE_CMD="ozone"
@@ -356,7 +356,7 @@ start_recon() {
             echo "ERROR: Ozone command not found"
             exit 1
         fi
-        
+
         # Check if Recon is already running
         if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "Recon is already running"
@@ -375,19 +375,19 @@ wait_for_safe_mode_exit() {
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
     local max_attempts=60
     local attempt=0
-    
+
     info "Waiting for Ozone to exit safe mode on $primary_host"
-    
+
     while [[ $attempt -lt $max_attempts ]]; do
         log "Checking safe mode status (attempt $((attempt + 1))/$max_attempts)..."
-        
+
         # Check safe mode status
         safe_mode_result=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$primary_host" '
             # Set up environment variables
             export JAVA_HOME=/usr/lib/jvm/java
             export OZONE_HOME=/opt/ozone
             export PATH="$OZONE_HOME/bin:$PATH"
-            
+
             # Find and use the actual JAVA_HOME if java is installed
             if command -v java >/dev/null 2>&1; then
                 java_bin=$(which java)
@@ -396,7 +396,7 @@ wait_for_safe_mode_exit() {
                 fi
                 export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
             fi
-            
+
             # Find ozone binary and set OZONE_HOME accordingly
             if command -v ozone >/dev/null 2>&1; then
                 OZONE_CMD="ozone"
@@ -410,11 +410,11 @@ wait_for_safe_mode_exit() {
                 echo "ERROR: Ozone command not found"
                 exit 1
             fi
-            
+
             # Check safe mode
             $OZONE_CMD admin safemode status 2>/dev/null || echo "FAILED"
         ' 2>/dev/null || echo "FAILED")
-        
+
         if [[ "$safe_mode_result" == *"OFF"* ]] || [[ "$safe_mode_result" == *"exited"* ]]; then
             log "Ozone has successfully exited safe mode!"
             return 0
@@ -423,11 +423,11 @@ wait_for_safe_mode_exit() {
         else
             info "Safe mode status: $safe_mode_result"
         fi
-        
+
         sleep 10
         ((attempt++))
     done
-    
+
     warn "Timeout waiting for safe mode exit after $((max_attempts * 10)) seconds"
     warn "You may need to manually check the status with: ozone admin safemode status"
     return 1
@@ -437,30 +437,30 @@ wait_for_safe_mode_exit() {
 check_service_status() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     info "Checking service status on $host"
-    
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         echo "Checking running Ozone processes:"
-        
+
         if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
             echo "  ✓ SCM is running (PID: $(pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager"))"
         else
             echo "  ✗ SCM is not running"
         fi
-        
+
         if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
             echo "  ✓ OM is running (PID: $(pgrep -f "org.apache.hadoop.ozone.om.OzoneManager"))"
         else
             echo "  ✗ OM is not running"
         fi
-        
+
         if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
             echo "  ✓ DataNode is running (PID: $(pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService"))"
         else
             echo "  ✗ DataNode is not running"
         fi
-        
+
         if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "  ✓ Recon is running (PID: $(pgrep -f "org.apache.hadoop.ozone.recon.ReconServer"))"
         else
@@ -472,20 +472,20 @@ check_service_status() {
 # Main function
 main() {
     log "Starting Ozone Services"
-    
+
     # Load configuration
     load_config
-    
+
     # Convert CLUSTER_HOSTS to array
     IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
-    
+
     if [[ ${#HOSTS[@]} -eq 0 ]]; then
         error "No hosts specified in CLUSTER_HOSTS"
         exit 1
     fi
-    
+
     local primary_host=$(echo "${HOSTS[0]}" | xargs)
-    
+
     # Check Ozone installation on all hosts
     log "Checking Ozone installation on all hosts..."
     for host in "${HOSTS[@]}"; do
@@ -495,47 +495,47 @@ main() {
             exit 1
         fi
     done
-    
+
     # Format SCM on primary host
     format_scm "$primary_host"
-    
-    # Format OM on primary host  
+
+    # Format OM on primary host
     format_om "$primary_host"
-    
+
     # Start SCM on primary host
     start_scm "$primary_host"
-    
+
     # Wait a bit for SCM to start
     sleep 10
-    
+
     # Start OM on primary host
     start_om "$primary_host"
-    
+
     # Wait a bit for OM to start
     sleep 10
-    
+
     # Start DataNodes on all hosts
     for host in "${HOSTS[@]}"; do
         host=$(echo "$host" | xargs)
         start_datanode "$host"
     done
-    
+
     # Start Recon on primary host
     start_recon "$primary_host"
-    
+
     # Wait for services to fully start
     log "Waiting for services to start up..."
     sleep 30
-    
+
     # Check service status on all hosts
     for host in "${HOSTS[@]}"; do
         host=$(echo "$host" | xargs)
         check_service_status "$host"
     done
-    
+
     # Wait for safe mode exit
     wait_for_safe_mode_exit "$primary_host"
-    
+
     log "Ozone services startup completed!"
     log ""
     log "Service URLs (on $primary_host):"

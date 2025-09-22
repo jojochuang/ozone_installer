@@ -72,7 +72,7 @@ This will:
 
 Creates and distributes:
 - `core-site.xml`
-- `ozone-site.xml` 
+- `ozone-site.xml`
 - `log4j.properties`
 
 ### 3. Start Ozone services:
@@ -114,7 +114,7 @@ The installer automatically configures:
 After successful startup, access these web interfaces:
 
 - SCM Web UI: `http://<primary-host>:9876`
-- OM Web UI: `http://<primary-host>:9874` 
+- OM Web UI: `http://<primary-host>:9874`
 - Recon Web UI: `http://<primary-host>:9888`
 
 ## Troubleshooting
@@ -134,6 +134,63 @@ ozone admin cluster info
 ## License
 
 Licensed under the Apache License, Version 2.0.
+
+## Development
+
+This project includes a precommit framework using GitHub Actions to ensure code quality and consistency.
+
+### Precommit Checks
+
+The repository includes automated checks for:
+
+- **Shell Script Linting**: Uses `shellcheck` to detect common shell scripting issues
+- **Shell Script Formatting**: Uses `shfmt` to check code formatting consistency
+- **Syntax Validation**: Validates shell script syntax using `bash -n`
+- **File Permissions**: Ensures shell scripts are executable
+- **Markdown Linting**: Validates markdown documentation
+- **General File Checks**: Detects trailing whitespace, line endings, and large files
+
+### Running Checks Locally
+
+Use the provided Makefile to run precommit checks locally:
+
+```bash
+# Show available commands
+make help
+
+# Run essential precommit checks
+make test-all
+
+# Run only shellcheck (errors only)
+make shellcheck-errors-only
+
+# Check shell script formatting
+make format
+
+# Fix shell script formatting
+make format-fix
+
+# Install precommit tools
+make install-tools
+```
+
+### GitHub Actions
+
+The precommit checks run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests targeting `main` or `develop` branches
+
+The workflow includes three jobs:
+1. **Shell Script Checks**: Linting, formatting, syntax, and permissions
+2. **Markdown Checks**: Documentation validation
+3. **File Checks**: General repository hygiene
+
+### Configuration Files
+
+- `.shellcheckrc`: Configuration for shellcheck to ignore acceptable warnings
+- `.markdownlint.json`: Configuration for markdown linting
+- `.editorconfig`: Editor configuration for consistent formatting
+- `Makefile`: Local development commands for precommit checks
 
 
 ## Rocky9 Docker Container with SSH Access

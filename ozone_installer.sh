@@ -317,6 +317,9 @@ validate_filesystem() {
 
                 # Create directory if it doesn't exist
                 sudo mkdir -p \"\$dir\"
+                
+                # Change ownership to the SSH user so Ozone services can access it
+                sudo chown -R \$(whoami):\$(id -gn) \"\$dir\"
 
                 # Get mount point and filesystem type
                 mount_point=\$(df \"\$dir\" | tail -1 | awk '{print \$1}')
@@ -326,6 +329,7 @@ validate_filesystem() {
                 echo \"  Mount point: \$mount_point\"
                 echo \"  Filesystem type: \$fs_type\"
                 echo \"  Mount options: \$mount_options\"
+                echo \"  Owner: \$(stat -c '%U:%G' \"\$dir\")\"
 
                 # Check filesystem type
                 if [[ \"\$fs_type\" != \"ext4\" && \"\$fs_type\" != \"xfs\" ]]; then

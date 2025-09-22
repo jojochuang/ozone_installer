@@ -38,16 +38,16 @@ run_test() {
     local test_name="$1"
     local test_command="$2"
     local expected_exit_code="${3:-0}"
-    
+
     ((TESTS_RUN++))
     log_test "$test_name"
-    
+
     # Capture both stdout and stderr, temporarily disable set -e
     set +e
     output=$(eval "$test_command" 2>&1)
     actual_exit_code=$?
     set -e
-    
+
     if [ "$actual_exit_code" -eq "$expected_exit_code" ]; then
         log_pass "$test_name"
         return 0
@@ -61,7 +61,7 @@ run_test() {
 # Test configuration loading function
 test_config_loading() {
     echo "Testing configuration loading functions..."
-    
+
     # Create a temporary config file for testing
     local temp_config="/tmp/test_ozone_installer.conf"
     cat > "$temp_config" << EOF
@@ -71,16 +71,16 @@ SSH_PORT="2222"
 CLUSTER_HOSTS="testhost1 testhost2"
 OZONE_VERSION="1.0.0"
 EOF
-    
+
     # Test that config loading works
     run_test "Config file can be parsed" \
         "source $temp_config && test \"\$SSH_USER\" = 'testuser' && test \"\$OZONE_VERSION\" = '1.0.0'" \
         0
-        
+
     run_test "Config file contains required variables" \
         "source $temp_config && [ -n '\$SSH_USER' ] && [ -n '\$CLUSTER_HOSTS' ]" \
         0
-        
+
     # Clean up
     rm -f "$temp_config"
 }
@@ -88,18 +88,18 @@ EOF
 # Test logging functions by sourcing them
 test_logging_functions() {
     echo "Testing logging functions..."
-    
+
     # Source the generate_configurations.sh to get logging functions
     local config_script="$PROJECT_DIR/generate_configurations.sh"
-    
+
     run_test "Logging functions exist in generate_configurations.sh" \
         "grep -q '^log()' $config_script && grep -q '^error()' $config_script && grep -q '^info()' $config_script" \
         0
-        
+
     run_test "Logging functions exist in ozone_installer.sh" \
         "grep -q '^log()' $PROJECT_DIR/ozone_installer.sh && grep -q '^error()' $PROJECT_DIR/ozone_installer.sh" \
         0
-        
+
     run_test "Logging functions exist in start_ozone_services.sh" \
         "grep -q '^log()' $PROJECT_DIR/start_ozone_services.sh && grep -q '^error()' $PROJECT_DIR/start_ozone_services.sh" \
         0
@@ -108,16 +108,16 @@ test_logging_functions() {
 # Test configuration file validation
 test_config_validation() {
     echo "Testing configuration validation..."
-    
+
     # Test that load_config function exists
     run_test "load_config function exists in generate_configurations.sh" \
         "grep -q '^load_config()' $PROJECT_DIR/generate_configurations.sh" \
         0
-        
+
     run_test "load_config function exists in ozone_installer.sh" \
         "grep -q '^load_config()' $PROJECT_DIR/ozone_installer.sh" \
         0
-        
+
     run_test "load_config function exists in start_ozone_services.sh" \
         "grep -q '^load_config()' $PROJECT_DIR/start_ozone_services.sh" \
         0
@@ -126,11 +126,11 @@ test_config_validation() {
 # Test SSH validation functions
 test_ssh_validation() {
     echo "Testing SSH validation functions..."
-    
+
     run_test "SSH validation function exists in ozone_installer.sh" \
         "grep -q 'validate_ssh_connection()' $PROJECT_DIR/ozone_installer.sh" \
         0
-        
+
     run_test "SSH validation checks private key file" \
         "grep -A10 'validate_ssh_connection()' $PROJECT_DIR/ozone_installer.sh | grep -q 'SSH private key file not found'" \
         0
@@ -139,15 +139,15 @@ test_ssh_validation() {
 # Test file generation functions
 test_file_generation() {
     echo "Testing file generation functions..."
-    
+
     run_test "Core site XML generation function exists" \
         "grep -q 'create_core_site_xml()' $PROJECT_DIR/generate_configurations.sh" \
         0
-        
+
     run_test "Ozone site XML generation function exists" \
         "grep -q 'create_ozone_site_xml()' $PROJECT_DIR/generate_configurations.sh" \
         0
-        
+
     run_test "Log4j properties generation function exists" \
         "grep -q 'create_log4j_properties()' $PROJECT_DIR/generate_configurations.sh" \
         0
@@ -156,11 +156,11 @@ test_file_generation() {
 # Test host information gathering
 test_host_info() {
     echo "Testing host information functions..."
-    
+
     run_test "Host info gathering function exists" \
         "grep -q 'get_host_info()' $PROJECT_DIR/ozone_installer.sh" \
         0
-        
+
     run_test "Host OS check function exists" \
         "grep -q 'check_host_os()' $PROJECT_DIR/ozone_installer.sh" \
         0
@@ -169,15 +169,15 @@ test_host_info() {
 # Test service management functions
 test_service_management() {
     echo "Testing service management functions..."
-    
+
     run_test "SCM format function exists" \
         "grep -q 'format_scm()' $PROJECT_DIR/start_ozone_services.sh" \
         0
-        
+
     run_test "OM format function exists" \
         "grep -q 'format_om()' $PROJECT_DIR/start_ozone_services.sh" \
         0
-        
+
     run_test "Service start functions exist" \
         "grep -q 'start.*ozone\|format.*scm\|format.*om' $PROJECT_DIR/start_ozone_services.sh" \
         0
@@ -186,12 +186,12 @@ test_service_management() {
 # Test script structure and best practices
 test_script_structure() {
     echo "Testing script structure and best practices..."
-    
+
     # Test that all scripts have proper shebangs
     run_test "All scripts have bash shebang" \
         "for script in $PROJECT_DIR/*.sh; do head -1 \"\$script\" | grep -q '^#!/bin/bash' || exit 1; done" \
         0
-        
+
     # Test that all scripts check if they're being sourced
     run_test "Scripts check if being sourced or executed" \
         "for script in $PROJECT_DIR/{generate_configurations,start_ozone_services,ozone_installer}.sh; do grep -q 'BASH_SOURCE.*0.*0' \"\$script\" || exit 1; done" \
@@ -202,11 +202,11 @@ test_script_structure() {
 main() {
     echo "Running unit tests for shell script functions"
     echo "============================================="
-    
+
     # Run tests (disable set -e to handle individual test failures)
     set +e
     test_config_loading || true
-    test_logging_functions || true 
+    test_logging_functions || true
     test_config_validation || true
     test_ssh_validation || true
     test_file_generation || true
@@ -214,7 +214,7 @@ main() {
     test_service_management || true
     test_script_structure || true
     set -e
-    
+
     # Summary
     echo ""
     echo "Test Summary:"
@@ -222,7 +222,7 @@ main() {
     echo "Tests run: $TESTS_RUN"
     echo "Tests passed: $TESTS_PASSED"
     echo "Tests failed: $TESTS_FAILED"
-    
+
     if [ "$TESTS_FAILED" -eq 0 ]; then
         echo -e "${GREEN}All tests passed!${NC}"
         exit 0

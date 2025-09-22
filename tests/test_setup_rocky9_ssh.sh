@@ -39,16 +39,16 @@ run_test() {
     local test_name="$1"
     local test_command="$2"
     local expected_exit_code="${3:-0}"
-    
+
     ((TESTS_RUN++))
     log_test "$test_name"
-    
+
     # Capture both stdout and stderr, temporarily disable set -e
     set +e
     output=$(eval "$test_command" 2>&1)
     actual_exit_code=$?
     set -e
-    
+
     if [ "$actual_exit_code" -eq "$expected_exit_code" ]; then
         log_pass "$test_name"
         return 0
@@ -66,7 +66,7 @@ test_invalid_option() {
         0
 }
 
-# Test 2: Help-like options should show usage  
+# Test 2: Help-like options should show usage
 test_help_options() {
     # Test that usage is shown for various scenarios
     run_test "Script without Docker shows usage when Docker not available" \
@@ -78,17 +78,17 @@ test_help_options() {
 test_valid_options() {
     # We can't actually run Docker commands in CI, but we can test that the options are recognized
     # by checking that they don't immediately show usage errors
-    
+
     # Test stop command (should fail gracefully without Docker)
     run_test "Stop command is recognized" \
         "$SETUP_SCRIPT stop 2>&1 | head -1 | grep -q 'Stopping Rocky9 container' || true" \
         0
-        
-    # Test clean command (should fail gracefully without Docker)  
+
+    # Test clean command (should fail gracefully without Docker)
     run_test "Clean command is recognized" \
         "$SETUP_SCRIPT clean 2>&1 | head -1 | grep -q 'Cleaning up Rocky9 container' || true" \
         0
-        
+
     # Test info command (should fail gracefully without Docker)
     run_test "Info command is recognized" \
         "$SETUP_SCRIPT info 2>&1 | grep -q 'Container details:' || true" \
@@ -100,11 +100,11 @@ test_script_structure() {
     run_test "Script has main function" \
         "grep -q '^main()' $SETUP_SCRIPT" \
         0
-        
+
     run_test "Script has case statement for options" \
         "grep -q 'case.*{1:-start}' $SETUP_SCRIPT" \
         0
-        
+
     run_test "Script has all expected command options" \
         "grep -A30 'case.*{1:-start}' $SETUP_SCRIPT | grep -c '\"start\"\|\"stop\"\|\"clean\"\|\"connect\"\|\"info\"' | grep -q '^5$'" \
         0
@@ -114,19 +114,19 @@ test_script_structure() {
 main() {
     echo "Running tests for setup-rocky9-ssh.sh command options"
     echo "======================================================"
-    
+
     # Check if the script exists
     if [ ! -f "$SETUP_SCRIPT" ]; then
         echo "Error: $SETUP_SCRIPT not found"
         exit 1
     fi
-    
+
     # Make sure script is executable
     if [ ! -x "$SETUP_SCRIPT" ]; then
         echo "Error: $SETUP_SCRIPT is not executable"
         exit 1
     fi
-    
+
     # Run tests (disable set -e to handle individual test failures)
     set +e
     test_script_structure || true
@@ -134,7 +134,7 @@ main() {
     test_help_options || true
     test_valid_options || true
     set -e
-    
+
     # Summary
     echo ""
     echo "Test Summary:"
@@ -142,7 +142,7 @@ main() {
     echo "Tests run: $TESTS_RUN"
     echo "Tests passed: $TESTS_PASSED"
     echo "Tests failed: $TESTS_FAILED"
-    
+
     if [ "$TESTS_FAILED" -eq 0 ]; then
         echo -e "${GREEN}All tests passed!${NC}"
         exit 0

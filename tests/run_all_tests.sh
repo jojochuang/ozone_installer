@@ -27,7 +27,7 @@ echo ""
 run_test_script() {
     local test_script="$1"
     local test_name="$2"
-    
+
     echo -e "${YELLOW}Running $test_name...${NC}"
     if "$test_script"; then
         echo -e "${GREEN}✅ $test_name passed${NC}"

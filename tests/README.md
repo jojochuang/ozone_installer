@@ -42,7 +42,7 @@ Comprehensive test runner that executes all test suites and provides summary res
 # Test command options
 make test-commands
 
-# Test script functions  
+# Test script functions
 make test-functions
 
 # Run comprehensive precommit tests

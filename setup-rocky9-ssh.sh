@@ -60,6 +60,7 @@ run_container() {
     docker run -d \
         --name $CONTAINER_NAME \
         -p $SSH_PORT:22 \
+        -p 9863:9863 \
         -p 9874:9874 \
         -p 9876:9876 \
         -p 9888:9888 \
@@ -70,7 +71,7 @@ run_container() {
 
     echo "Container started successfully: $CONTAINER_NAME"
     echo "SSH port mapped to: $SSH_PORT"
-    echo "Ozone service ports exposed: 9874, 9876, 9888, 9878, 14000, 9882"
+    echo "Ozone service ports exposed: 9863, 9874, 9876, 9888, 9878, 14000, 9882"
 }
 
 # Function to copy SSH public key to container

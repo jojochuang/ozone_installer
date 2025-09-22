@@ -249,7 +249,7 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 - **Base Image**: Rocky Linux 9
 - **Container Name**: rocky9-ssh
 - **SSH Port**: 2222 (mapped from container port 22)
-- **Ozone Service Ports**: 9874 (OM), 9876 (SCM), 9888 (Recon), 9878 (S3 Gateway), 14000 (HttpFS), 9882 (Datanode)
+- **Ozone Service Ports**: 9863 (SCM Client), 9874 (OM), 9876 (SCM Web UI), 9888 (Recon), 9878 (S3 Gateway), 14000 (HttpFS), 9882 (Datanode)
 - **Username**: rocky
 - **User Privileges**: sudo access without password
 - **Container Mode**: standard (privileged mode removed to fix SSH connectivity)

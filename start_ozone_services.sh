@@ -392,14 +392,14 @@ start_recon() {
             echo \"Recon is already running\"
         else
             # Ensure Recon directories exist with proper permissions
-            echo "Ensuring Recon directories exist with proper permissions..."
+            echo \"Ensuring Recon directories exist with proper permissions...\"
             sudo mkdir -p /var/lib/hadoop-ozone/recon/data
             sudo mkdir -p /var/lib/hadoop-ozone/recon/scm/data
             sudo mkdir -p /var/lib/hadoop-ozone/recon/om/data
-            sudo chown -R $(whoami):$(id -gn) /var/lib/hadoop-ozone/recon
+            sudo chown -R \$(whoami):\$(id -gn) /var/lib/hadoop-ozone/recon
                         
-            echo "Starting Recon in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-            nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
+            echo \"Starting Recon in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+            nohup \$OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
             sleep 5
             echo \"Recon startup initiated\"
         fi

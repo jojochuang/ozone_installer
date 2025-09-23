@@ -108,6 +108,14 @@ test_script_structure() {
     run_test "Script has all expected command options" \
         "grep -A30 'case.*{1:-start}' $SETUP_SCRIPT | grep -c '\"start\"\|\"stop\"\|\"clean\"\|\"connect\"\|\"info\"' | grep -q '^5$'" \
         0
+
+    run_test "Script includes Prometheus port mapping (9090)" \
+        "grep -q '\-p 9090:9090' $SETUP_SCRIPT" \
+        0
+
+    run_test "Script includes Grafana port mapping (3000)" \
+        "grep -q '\-p 3000:3000' $SETUP_SCRIPT" \
+        0
 }
 
 # Main test execution

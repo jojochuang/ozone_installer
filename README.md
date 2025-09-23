@@ -55,6 +55,12 @@ INSTALL_GRAFANA="true"     # Set to "false" to disable
 PROMETHEUS_VERSION="2.54.1"
 PROMETHEUS_PORT="9090"
 GRAFANA_PORT="3000"
+
+# Optional: Use local tarball to skip download (for better scalability)
+# LOCAL_TARBALL_PATH="/path/to/ozone-2.0.0.tar.gz"
+
+# Optional: Configure parallel transfers (default: 10)
+MAX_CONCURRENT_TRANSFERS=10
 ```
 
 ## Usage
@@ -74,6 +80,29 @@ This will:
 - Install and configure time synchronization
 - Download and install Apache Ozone binary
 - Install Prometheus and Grafana (if enabled in configuration)
+
+- **Download Ozone binary once and distribute to all hosts** (scalable for large clusters)
+
+### Scalability Features
+
+The installer automatically optimizes for large clusters by:
+- **Centralized Download**: Downloads the Ozone tarball once on the installer machine
+- **Parallel SCP Distribution**: Transfers the tarball to multiple hosts simultaneously (up to 10 concurrent transfers)
+- **Configurable Concurrency**: Control parallel transfers via `MAX_CONCURRENT_TRANSFERS` setting
+- **Fallback Mechanism**: Falls back to direct download if SCP transfer fails
+- **Local Tarball Support**: Can use a pre-downloaded tarball via `LOCAL_TARBALL_PATH` configuration
+
+This approach scales efficiently to 100+ hosts without overwhelming Apache's download servers, and the parallel transfers significantly reduce installation time.
+
+### Testing the Scalability Improvements
+
+Run the included test script to see the scalability improvements in action:
+
+```bash
+./test_scalability.sh
+```
+
+This demonstrates how the new approach reduces external downloads from N (number of hosts) to 1.
 
 ### 2. Generate configuration files:
 ```bash
@@ -164,6 +193,8 @@ The repository includes automated checks for:
 - **File Permissions**: Ensures shell scripts are executable
 - **Markdown Linting**: Validates markdown documentation
 - **General File Checks**: Detects trailing whitespace, line endings, and large files
+- **Command Option Tests**: Validates that shell script command options work as documented
+- **Function Unit Tests**: Basic unit tests for key functions in shell scripts
 
 ### Running Checks Locally
 
@@ -185,6 +216,15 @@ make format
 # Fix shell script formatting
 make format-fix
 
+# Test shell script command options (as per README)
+make test-commands
+
+# Test shell script functions (basic unit tests)
+make test-functions
+
+# Run comprehensive precommit tests (command options + unit tests)
+make test-precommit
+
 # Install precommit tools
 make install-tools
 ```
@@ -195,8 +235,8 @@ The precommit checks run automatically on:
 - Push to `main` or `develop` branches
 - Pull requests targeting `main` or `develop` branches
 
-The workflow includes three jobs:
-1. **Shell Script Checks**: Linting, formatting, syntax, and permissions
+The workflow includes four jobs:
+1. **Shell Script Checks**: Linting, formatting, syntax, permissions, and precommit tests
 2. **Markdown Checks**: Documentation validation
 3. **File Checks**: General repository hygiene
 

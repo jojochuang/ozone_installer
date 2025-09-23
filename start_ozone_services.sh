@@ -104,6 +104,7 @@ format_scm() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/scm
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -130,7 +131,7 @@ format_scm() {
         fi
 
         # Format SCM if not already formatted
-        echo "Formatting SCM..."
+        echo "Formatting SCM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
         $OZONE_CMD scm --init || echo "SCM may already be formatted"
     '
 }
@@ -146,6 +147,7 @@ format_om() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/om
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -172,7 +174,7 @@ format_om() {
         fi
 
         # Format OM if not already formatted
-        echo "Formatting OM..."
+        echo "Formatting OM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
         $OZONE_CMD om --init || echo "OM may already be formatted"
     '
 }
@@ -188,6 +190,7 @@ start_scm() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/scm
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -214,10 +217,10 @@ start_scm() {
         fi
 
         # Check if SCM is already running
-        if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
+        if ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
             echo "SCM is already running"
         else
-            echo "Starting SCM in background..."
+            echo "Starting SCM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start scm > /tmp/scm.log 2>&1 &
             sleep 5
             echo "SCM startup initiated"
@@ -236,6 +239,7 @@ start_om() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/om
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -262,10 +266,10 @@ start_om() {
         fi
 
         # Check if OM is already running
-        if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
+        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
             echo "OM is already running"
         else
-            echo "Starting OM in background..."
+            echo "Starting OM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start om > /tmp/om.log 2>&1 &
             sleep 5
             echo "OM startup initiated"
@@ -284,6 +288,7 @@ start_datanode() {
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/datanode
         export PATH="$OZONE_HOME/bin:$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
@@ -310,10 +315,10 @@ start_datanode() {
         fi
 
         # Check if DataNode is already running
-        if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
+        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
             echo "DataNode is already running"
         else
-            echo "Starting DataNode in background..."
+            echo "Starting DataNode in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start datanode > /tmp/datanode.log 2>&1 &
             sleep 5
             echo "DataNode startup initiated"
@@ -327,6 +332,55 @@ start_recon() {
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
 
     info "Starting Recon on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Set up environment variables
+        export JAVA_HOME=/usr/lib/jvm/java
+        export OZONE_HOME=/opt/ozone
+        export OZONE_CONF_DIR=/opt/ozone/conf/recon
+        export PATH="$OZONE_HOME/bin:$PATH"
+
+        # Find and use the actual JAVA_HOME if java is installed
+        if command -v java >/dev/null 2>&1; then
+            java_bin=$(which java)
+            if [[ -L "$java_bin" ]]; then
+                java_bin=$(readlink -f "$java_bin")
+            fi
+            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+        fi
+
+        # Find ozone binary and set OZONE_HOME accordingly
+        if command -v ozone >/dev/null 2>&1; then
+            OZONE_CMD="ozone"
+        elif [[ -f /opt/ozone/bin/ozone ]]; then
+            OZONE_CMD="/opt/ozone/bin/ozone"
+            export OZONE_HOME=/opt/ozone
+        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
+            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            export OZONE_HOME=/usr/local/ozone
+        else
+            echo "ERROR: Ozone command not found"
+            exit 1
+        fi
+
+        # Check if Recon is already running
+        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
+            echo "Recon is already running"
+        else
+            echo "Starting Recon in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
+            nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
+            sleep 5
+            echo "Recon startup initiated"
+        fi
+    '
+}
+
+# Function to start S3 Gateway
+start_s3gateway() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Starting S3 Gateway on $host"
 
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         # Set up environment variables
@@ -357,14 +411,62 @@ start_recon() {
             exit 1
         fi
 
-        # Check if Recon is already running
-        if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
-            echo "Recon is already running"
+        # Check if S3 Gateway is already running
+        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
+            echo "S3 Gateway is already running"
         else
-            echo "Starting Recon in background..."
-            nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
+            echo "Starting S3 Gateway in background..."
+            nohup $OZONE_CMD --daemon start s3g > /tmp/s3gateway.log 2>&1 &
             sleep 5
-            echo "Recon startup initiated"
+            echo "S3 Gateway startup initiated"
+        fi
+    '
+}
+
+# Function to start HttpFS
+start_httpfs() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Starting HttpFS on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Set up environment variables
+        export JAVA_HOME=/usr/lib/jvm/java
+        export OZONE_HOME=/opt/ozone
+        export PATH="$OZONE_HOME/bin:$PATH"
+
+        # Find and use the actual JAVA_HOME if java is installed
+        if command -v java >/dev/null 2>&1; then
+            java_bin=$(which java)
+            if [[ -L "$java_bin" ]]; then
+                java_bin=$(readlink -f "$java_bin")
+            fi
+            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+        fi
+
+        # Find ozone binary and set OZONE_HOME accordingly
+        if command -v ozone >/dev/null 2>&1; then
+            OZONE_CMD="ozone"
+        elif [[ -f /opt/ozone/bin/ozone ]]; then
+            OZONE_CMD="/opt/ozone/bin/ozone"
+            export OZONE_HOME=/opt/ozone
+        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
+            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            export OZONE_HOME=/usr/local/ozone
+        else
+            echo "ERROR: Ozone command not found"
+            exit 1
+        fi
+
+        # Check if HttpFS is already running
+        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
+            echo "HttpFS is already running"
+        else
+            echo "Starting HttpFS in background..."
+            nohup $OZONE_CMD --daemon start httpfs > /tmp/httpfs.log 2>&1 &
+            sleep 5
+            echo "HttpFS startup initiated"
         fi
     '
 }
@@ -443,28 +545,44 @@ check_service_status() {
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
         echo "Checking running Ozone processes:"
 
-        if pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
-            echo "  ✓ SCM is running (PID: $(pgrep -f "org.apache.hadoop.hdds.scm.server.StorageContainerManager"))"
+        scm_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" | awk "{print \$2}" | head -1)
+        if [[ -n "$scm_pid" ]]; then
+            echo "  ✓ SCM is running (PID: $scm_pid)"
         else
             echo "  ✗ SCM is not running"
         fi
 
-        if pgrep -f "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
-            echo "  ✓ OM is running (PID: $(pgrep -f "org.apache.hadoop.ozone.om.OzoneManager"))"
+        om_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" | awk "{print \$2}" | head -1)
+        if [[ -n "$om_pid" ]]; then
+            echo "  ✓ OM is running (PID: $om_pid)"
         else
             echo "  ✗ OM is not running"
         fi
 
-        if pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
-            echo "  ✓ DataNode is running (PID: $(pgrep -f "org.apache.hadoop.ozone.HddsDatanodeService"))"
+        datanode_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" | awk "{print \$2}" | head -1)
+        if [[ -n "$datanode_pid" ]]; then
+            echo "  ✓ DataNode is running (PID: $datanode_pid)"
         else
             echo "  ✗ DataNode is not running"
         fi
 
-        if pgrep -f "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
-            echo "  ✓ Recon is running (PID: $(pgrep -f "org.apache.hadoop.ozone.recon.ReconServer"))"
+        recon_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" | awk "{print \$2}" | head -1)
+        if [[ -n "$recon_pid" ]]; then
+            echo "  ✓ Recon is running (PID: $recon_pid)"
         else
             echo "  ✗ Recon is not running"
+        fi
+
+        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
+            echo "  ✓ S3 Gateway is running (PID: $(pgrep -f "org.apache.hadoop.ozone.s3.Gateway"))"
+        else
+            echo "  ✗ S3 Gateway is not running"
+        fi
+
+        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
+            echo "  ✓ HttpFS is running (PID: $(pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp"))"
+        else
+            echo "  ✗ HttpFS is not running"
         fi
     '
 }
@@ -523,6 +641,12 @@ main() {
     # Start Recon on primary host
     start_recon "$primary_host"
 
+    # Start S3 Gateway on primary host
+    start_s3gateway "$primary_host"
+
+    # Start HttpFS on primary host
+    start_httpfs "$primary_host"
+
     # Wait for services to fully start
     log "Waiting for services to start up..."
     sleep 30
@@ -542,6 +666,8 @@ main() {
     log "  SCM Web UI: http://$primary_host:9876"
     log "  OM Web UI: http://$primary_host:9874"
     log "  Recon Web UI: http://$primary_host:9888"
+    log "  S3 Gateway: http://$primary_host:9878"
+    log "  HttpFS: http://$primary_host:14000"
     log ""
     log "To check cluster status:"
     log "  ozone admin safemode status"

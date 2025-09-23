@@ -1,7 +1,7 @@
 # Makefile for Ozone Installer precommit checks
 # This provides convenient commands for running precommit checks locally
 
-.PHONY: help lint shellcheck format syntax test-all clean
+.PHONY: help lint shellcheck format syntax test-all test-commands test-functions test-precommit clean
 
 help: ## Show this help message
 	@echo "Ozone Installer - Precommit Checks"
@@ -74,6 +74,18 @@ markdown: ## Check markdown files (if markdownlint is available)
 
 test-all: shellcheck-errors-only syntax permissions ## Run all essential precommit checks
 	@echo "✅ All essential precommit checks passed!"
+
+test-commands: ## Test shell script command options (as per README)
+	@echo "Testing shell script command options..."
+	@./tests/test_setup_rocky9_ssh.sh >/dev/null && echo "✅ Command option tests passed!" || (echo "❌ Command option tests failed!" && exit 1)
+
+test-functions: ## Test shell script functions (basic unit tests)
+	@echo "Testing shell script functions..."
+	@./tests/test_script_functions.sh >/dev/null && echo "✅ Function tests passed!" || (echo "❌ Function tests failed!" && exit 1)
+
+test-precommit: ## Run all precommit tests (command options + unit tests)
+	@echo "Running comprehensive precommit tests..."
+	@./tests/run_all_tests.sh && echo "✅ All precommit tests passed!" || (echo "❌ Precommit tests failed!" && exit 1)
 
 clean: ## Clean up temporary files
 	@echo "Cleaning up temporary files..."

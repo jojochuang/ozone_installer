@@ -100,46 +100,46 @@ format_scm() {
 
     info "Formatting SCM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export OZONE_CONF_DIR=/opt/ozone/conf/scm
-        export PATH="$OZONE_HOME/bin:$PATH"
+        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
 
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
+            java_bin=\$(which java)
+            if [[ -L \"\$java_bin\" ]]; then
+                java_bin=\$(readlink -f \"\$java_bin\")
             fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
         fi
 
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
+            OZONE_CMD=\"ozone\"
         elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
+            OZONE_CMD=\"/opt/ozone/bin/ozone\"
             export OZONE_HOME=/opt/ozone
         elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
             export OZONE_HOME=/usr/local/ozone
         else
-            echo "ERROR: Ozone command not found"
+            echo \"ERROR: Ozone command not found\"
             exit 1
         fi
 
         # Ensure data directories exist with proper permissions before formatting
-        echo "Ensuring SCM data directories exist with proper permissions..."
-        sudo mkdir -p "$OZONE_SCM_DB_DIRS" "$OZONE_SCM_HA_RATIS_STORAGE_DIR" "$OZONE_SCM_METADATA_DIRS"
-        sudo chown -R $(whoami):$(id -gn) "$OZONE_SCM_DB_DIRS" "$OZONE_SCM_HA_RATIS_STORAGE_DIR" "$OZONE_SCM_METADATA_DIRS"
-        sudo chmod -R 750 "$OZONE_SCM_DB_DIRS" "$OZONE_SCM_HA_RATIS_STORAGE_DIR" "$OZONE_SCM_METADATA_DIRS"
+        echo \"Ensuring SCM data directories exist with proper permissions...\"
+        sudo mkdir -p \"$OZONE_SCM_DB_DIRS\" \"$OZONE_SCM_HA_RATIS_STORAGE_DIR\" \"$OZONE_SCM_METADATA_DIRS\"
+        sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_SCM_DB_DIRS\" \"$OZONE_SCM_HA_RATIS_STORAGE_DIR\" \"$OZONE_SCM_METADATA_DIRS\"
+        sudo chmod -R 750 \"$OZONE_SCM_DB_DIRS\" \"$OZONE_SCM_HA_RATIS_STORAGE_DIR\" \"$OZONE_SCM_METADATA_DIRS\"
 
         # Format SCM if not already formatted
-        echo "Formatting SCM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-        $OZONE_CMD scm --init || echo "SCM may already be formatted"
-    '
+        echo \"Formatting SCM with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+        \$OZONE_CMD scm --init || echo \"SCM may already be formatted\"
+    "
 }
 
 # Function to format OM
@@ -149,46 +149,46 @@ format_om() {
 
     info "Formatting OM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export OZONE_CONF_DIR=/opt/ozone/conf/om
-        export PATH="$OZONE_HOME/bin:$PATH"
+        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
 
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
+            java_bin=\$(which java)
+            if [[ -L \"\$java_bin\" ]]; then
+                java_bin=\$(readlink -f \"\$java_bin\")
             fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
         fi
 
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
+            OZONE_CMD=\"ozone\"
         elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
+            OZONE_CMD=\"/opt/ozone/bin/ozone\"
             export OZONE_HOME=/opt/ozone
         elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
             export OZONE_HOME=/usr/local/ozone
         else
-            echo "ERROR: Ozone command not found"
+            echo \"ERROR: Ozone command not found\"
             exit 1
         fi
 
         # Ensure data directories exist with proper permissions before formatting
-        echo "Ensuring OM data directories exist with proper permissions..."
-        sudo mkdir -p "$OZONE_OM_DB_DIR" "$OZONE_METADATA_DIRS" "$OZONE_OM_RATIS_STORAGE_DIR"
-        sudo chown -R $(whoami):$(id -gn) "$OZONE_OM_DB_DIR" "$OZONE_METADATA_DIRS" "$OZONE_OM_RATIS_STORAGE_DIR"
-        sudo chmod -R 750 "$OZONE_OM_DB_DIR" "$OZONE_METADATA_DIRS" "$OZONE_OM_RATIS_STORAGE_DIR"
+        echo \"Ensuring OM data directories exist with proper permissions...\"
+        sudo mkdir -p \"$OZONE_OM_DB_DIR\" \"$OZONE_METADATA_DIRS\" \"$OZONE_OM_RATIS_STORAGE_DIR\"
+        sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_OM_DB_DIR\" \"$OZONE_METADATA_DIRS\" \"$OZONE_OM_RATIS_STORAGE_DIR\"
+        sudo chmod -R 750 \"$OZONE_OM_DB_DIR\" \"$OZONE_METADATA_DIRS\" \"$OZONE_OM_RATIS_STORAGE_DIR\"
 
         # Format OM if not already formatted
-        echo "Formatting OM with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-        $OZONE_CMD om --init || echo "OM may already be formatted"
-    '
+        echo \"Formatting OM with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+        \$OZONE_CMD om --init || echo \"OM may already be formatted\"
+    "
 }
 
 # Function to start SCM
@@ -296,52 +296,52 @@ start_datanode() {
 
     info "Starting DataNode on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export OZONE_CONF_DIR=/opt/ozone/conf/datanode
-        export PATH="$OZONE_HOME/bin:$PATH"
+        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
 
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
+            java_bin=\$(which java)
+            if [[ -L \"\$java_bin\" ]]; then
+                java_bin=\$(readlink -f \"\$java_bin\")
             fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
         fi
 
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
+            OZONE_CMD=\"ozone\"
         elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
+            OZONE_CMD=\"/opt/ozone/bin/ozone\"
             export OZONE_HOME=/opt/ozone
         elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
             export OZONE_HOME=/usr/local/ozone
         else
-            echo "ERROR: Ozone command not found"
+            echo \"ERROR: Ozone command not found\"
             exit 1
         fi
 
         # Ensure data directories exist with proper permissions before starting
-        echo "Ensuring DataNode data directories exist with proper permissions..."
-        sudo mkdir -p "$OZONE_SCM_DATANODE_ID_DIR" "$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR" "$HDDS_DATANODE_DIR" "$OZONE_DATANODE_METADATA_DIRS"
-        sudo chown -R $(whoami):$(id -gn) "$OZONE_SCM_DATANODE_ID_DIR" "$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR" "$HDDS_DATANODE_DIR" "$OZONE_DATANODE_METADATA_DIRS"
-        sudo chmod -R 750 "$OZONE_SCM_DATANODE_ID_DIR" "$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR" "$HDDS_DATANODE_DIR" "$OZONE_DATANODE_METADATA_DIRS"
+        echo \"Ensuring DataNode data directories exist with proper permissions...\"
+        sudo mkdir -p \"$OZONE_SCM_DATANODE_ID_DIR\" \"$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR\" \"$HDDS_DATANODE_DIR\" \"$OZONE_DATANODE_METADATA_DIRS\"
+        sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_SCM_DATANODE_ID_DIR\" \"$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR\" \"$HDDS_DATANODE_DIR\" \"$OZONE_DATANODE_METADATA_DIRS\"
+        sudo chmod -R 750 \"$OZONE_SCM_DATANODE_ID_DIR\" \"$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR\" \"$HDDS_DATANODE_DIR\" \"$OZONE_DATANODE_METADATA_DIRS\"
 
         # Check if DataNode is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" >/dev/null; then
-            echo "DataNode is already running"
+        if ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.HddsDatanodeService\" >/dev/null; then
+            echo \"DataNode is already running\"
         else
-            echo "Starting DataNode in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-            nohup $OZONE_CMD --daemon start datanode > /tmp/datanode.log 2>&1 &
+            echo \"Starting DataNode in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+            nohup \$OZONE_CMD --daemon start datanode > /tmp/datanode.log 2>&1 &
             sleep 5
-            echo "DataNode startup initiated"
+            echo \"DataNode startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to start Recon
@@ -351,59 +351,59 @@ start_recon() {
 
     info "Starting Recon on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
         export OZONE_CONF_DIR=/opt/ozone/conf/recon
-        export PATH="$OZONE_HOME/bin:$PATH"
+        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
 
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
+            java_bin=\$(which java)
+            if [[ -L \"\$java_bin\" ]]; then
+                java_bin=\$(readlink -f \"\$java_bin\")
             fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
         fi
 
         # Find ozone binary and set OZONE_HOME accordingly
         if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
+            OZONE_CMD=\"ozone\"
         elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
+            OZONE_CMD=\"/opt/ozone/bin/ozone\"
             export OZONE_HOME=/opt/ozone
         elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
+            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
             export OZONE_HOME=/usr/local/ozone
         else
-            echo "ERROR: Ozone command not found"
+            echo \"ERROR: Ozone command not found\"
             exit 1
         fi
 
         # Ensure data directories exist with proper permissions before starting
-        echo "Ensuring Recon data directories exist with proper permissions..."
-        sudo mkdir -p "$OZONE_RECON_DB_DIR" "$OZONE_RECON_SCM_DB_DIRS" "$OZONE_RECON_OM_DB_DIR" "$OZONE_RECON_METADATA_DIRS"
-        sudo chown -R $(whoami):$(id -gn) "$OZONE_RECON_DB_DIR" "$OZONE_RECON_SCM_DB_DIRS" "$OZONE_RECON_OM_DB_DIR" "$OZONE_RECON_METADATA_DIRS"
-        sudo chmod -R 750 "$OZONE_RECON_DB_DIR" "$OZONE_RECON_SCM_DB_DIRS" "$OZONE_RECON_OM_DB_DIR" "$OZONE_RECON_METADATA_DIRS"
+        echo \"Ensuring Recon data directories exist with proper permissions...\"
+        sudo mkdir -p \"$OZONE_RECON_DB_DIR\" \"$OZONE_RECON_SCM_DB_DIRS\" \"$OZONE_RECON_OM_DB_DIR\" \"$OZONE_RECON_METADATA_DIRS\"
+        sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_RECON_DB_DIR\" \"$OZONE_RECON_SCM_DB_DIRS\" \"$OZONE_RECON_OM_DB_DIR\" \"$OZONE_RECON_METADATA_DIRS\"
+        sudo chmod -R 750 \"$OZONE_RECON_DB_DIR\" \"$OZONE_RECON_SCM_DB_DIRS\" \"$OZONE_RECON_OM_DB_DIR\" \"$OZONE_RECON_METADATA_DIRS\"
 
         # Check if Recon is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
-            echo "Recon is already running"
+        if ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.recon.ReconServer\" >/dev/null; then
+            echo \"Recon is already running\"
         else
             # Ensure Recon directories exist with proper permissions
-            echo "Ensuring Recon directories exist with proper permissions..."
+            echo \"Ensuring Recon directories exist with proper permissions...\"
             sudo mkdir -p /var/lib/hadoop-ozone/recon/data
             sudo mkdir -p /var/lib/hadoop-ozone/recon/scm/data
             sudo mkdir -p /var/lib/hadoop-ozone/recon/om/data
-            sudo chown -R $(whoami):$(id -gn) /var/lib/hadoop-ozone/recon
+            sudo chown -R \$(whoami):\$(id -gn) /var/lib/hadoop-ozone/recon
                         
-            echo "Starting Recon in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-            nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
+            echo \"Starting Recon in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+            nohup \$OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
             sleep 5
-            echo "Recon startup initiated"
+            echo \"Recon startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to start S3 Gateway

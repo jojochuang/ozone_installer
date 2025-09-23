@@ -641,14 +641,14 @@ main() {
     # Format SCM on primary host
     format_scm "$primary_host"
 
-    # Format OM on primary host
-    format_om "$primary_host"
-
-    # Start SCM on primary host
+    # Start SCM on primary host (SCM must start before formatting OM)
     start_scm "$primary_host"
 
     # Wait a bit for SCM to start
     sleep 10
+
+    # Format OM on primary host (after SCM is running)
+    format_om "$primary_host"
 
     # Start OM on primary host
     start_om "$primary_host"

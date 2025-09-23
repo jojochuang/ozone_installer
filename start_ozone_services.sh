@@ -397,7 +397,7 @@ start_recon() {
             sudo mkdir -p /var/lib/hadoop-ozone/recon/scm/data
             sudo mkdir -p /var/lib/hadoop-ozone/recon/om/data
             sudo chown -R \$(whoami):\$(id -gn) /var/lib/hadoop-ozone/recon
-                        
+
             echo \"Starting Recon in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
             nohup \$OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
             sleep 5

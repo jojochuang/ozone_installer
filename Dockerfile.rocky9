@@ -31,6 +31,10 @@ RUN sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config && 
 # Create the run directory for sshd
 RUN mkdir -p /run/sshd
 
+# Configure environment variables for Java and Ozone
+ENV JAVA_HOME=/usr/lib/jvm/java
+ENV OZONE_HOME=/opt/ozone
+
 # Expose SSH port
 EXPOSE 22
 

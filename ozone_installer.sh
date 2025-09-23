@@ -321,6 +321,9 @@ validate_filesystem() {
                 # Change ownership to the SSH user so Ozone services can access it
                 sudo chown -R \$(whoami):\$(id -gn) \"\$dir\"
 
+                # Set proper permissions for Ozone directories (rwxr-x--- for security)
+                sudo chmod -R 750 \"\$dir\"
+
                 # Get mount point and filesystem type
                 mount_point=\$(df \"\$dir\" | tail -1 | awk '{print \$1}')
                 fs_type=\$(df -T \"\$dir\" | tail -1 | awk '{print \$2}')
@@ -330,6 +333,7 @@ validate_filesystem() {
                 echo \"  Filesystem type: \$fs_type\"
                 echo \"  Mount options: \$mount_options\"
                 echo \"  Owner: \$(stat -c '%U:%G' \"\$dir\")\"
+                echo \"  Permissions: \$(stat -c '%a' \"\$dir\")\"
 
                 # Check filesystem type
                 if [[ \"\$fs_type\" != \"ext4\" && \"\$fs_type\" != \"xfs\" ]]; then
@@ -790,6 +794,7 @@ install_ozone() {
 
         # Set proper ownership and permissions
         sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_INSTALL_DIR\"
+        sudo chmod -R 755 \"$OZONE_INSTALL_DIR\"
         sudo chmod +x \"$OZONE_INSTALL_DIR/bin/ozone\"
         sudo chmod +x \"$OZONE_INSTALL_DIR/bin\"/*
 

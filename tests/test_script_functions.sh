@@ -183,6 +183,31 @@ test_service_management() {
         0
 }
 
+# Test installation functions
+test_installation_functions() {
+    echo "Testing installation functions..."
+
+    run_test "JDK installation function exists" \
+        "grep -q '^install_jdk()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    run_test "Time sync installation function exists" \
+        "grep -q '^install_time_sync()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    run_test "Basic utilities installation function exists" \
+        "grep -q '^install_basic_utilities()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    run_test "Basic utilities function installs tput dependencies" \
+        "grep -A40 '^install_basic_utilities()' $PROJECT_DIR/ozone_installer.sh | grep -q 'ncurses'" \
+        0
+
+    run_test "Basic utilities function calls are in main workflow" \
+        "grep -q 'install_basic_utilities.*host' $PROJECT_DIR/ozone_installer.sh" \
+        0
+}
+
 # Test script structure and best practices
 test_script_structure() {
     echo "Testing script structure and best practices..."
@@ -212,6 +237,7 @@ main() {
     test_file_generation || true
     test_host_info || true
     test_service_management || true
+    test_installation_functions || true
     test_script_structure || true
     set -e
 

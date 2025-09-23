@@ -503,6 +503,64 @@ install_jdk() {
     "
 }
 
+# Function to install basic utilities including tput
+install_basic_utilities() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Installing basic utilities (including tput) on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Check if tput is already available
+        if command -v tput >/dev/null 2>&1; then
+            echo "tput is already available"
+            return 0
+        fi
+
+        # Detect package manager
+        if command -v yum >/dev/null 2>&1; then
+            PKG_MGR="yum"
+        elif command -v dnf >/dev/null 2>&1; then
+            PKG_MGR="dnf"
+        elif command -v apt-get >/dev/null 2>&1; then
+            PKG_MGR="apt-get"
+        elif command -v zypper >/dev/null 2>&1; then
+            PKG_MGR="zypper"
+        else
+            echo "No supported package manager found"
+            exit 1
+        fi
+
+        echo "Installing basic utilities using $PKG_MGR..."
+
+        # Install the package that provides tput
+        case $PKG_MGR in
+            "yum"|"dnf")
+                # RHEL/Rocky/CentOS/Fedora - tput is provided by ncurses
+                sudo $PKG_MGR install -y ncurses
+                ;;
+            "apt-get")
+                # Ubuntu/Debian - tput is provided by ncurses-utils
+                sudo apt-get update
+                sudo apt-get install -y ncurses-utils
+                ;;
+            "zypper")
+                # SUSE - tput is provided by ncurses-utils
+                sudo zypper refresh
+                sudo zypper install -y ncurses-utils
+                ;;
+        esac
+
+        # Verify tput is now available
+        if command -v tput >/dev/null 2>&1; then
+            echo "Basic utilities (including tput) installed successfully"
+        else
+            echo "ERROR: tput installation failed"
+            exit 1
+        fi
+    '
+}
+
 # Function to install and configure chrony/ntpd
 install_time_sync() {
     local host=$1
@@ -1161,6 +1219,9 @@ main() {
         # Combine all directories for validation
         all_dirs="$om_dirs $scm_dirs $recon_dirs $datanode_dirs"
         validate_filesystem "$host" "$all_dirs"
+
+        # Install basic utilities (including tput)
+        install_basic_utilities "$host"
 
         # Install JDK
         install_jdk "$host" "$jdk_version"

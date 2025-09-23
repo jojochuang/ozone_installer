@@ -404,9 +404,20 @@ distribute_configs() {
 
         info "Distributing configuration files to $host"
 
-        # Create Ozone configuration directory on remote host
+        # Create role-specific configuration directories on remote host
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-            sudo mkdir -p /etc/hadoop/conf
+            # Client configurations (for OZONE_CONF_DIR)
+            sudo mkdir -p /etc/hadoop
+
+            # Server role-specific configurations
+            sudo mkdir -p /opt/ozone/conf/om
+            sudo mkdir -p /opt/ozone/conf/scm
+            sudo mkdir -p /opt/ozone/conf/datanode
+            sudo mkdir -p /opt/ozone/conf/recon
+            sudo mkdir -p /opt/ozone/conf/s3g
+            sudo mkdir -p /opt/ozone/conf/httpfs
+
+            # Legacy directories for backward compatibility
             sudo mkdir -p /opt/ozone/etc/hadoop
         "
 
@@ -418,22 +429,52 @@ distribute_configs() {
         scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/ozone-site.xml" "$SSH_USER@$host:$temp_dir/"
         scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$output_dir/log4j.properties" "$SSH_USER@$host:$temp_dir/"
 
-        # Move files to final destinations with sudo
+        # Distribute configurations to role-specific directories
         ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-            sudo mv $temp_dir/core-site.xml /etc/hadoop/conf/
-            sudo mv $temp_dir/ozone-site.xml /etc/hadoop/conf/
-            sudo mv $temp_dir/log4j.properties /etc/hadoop/conf/
+            # Client configurations (OZONE_CONF_DIR for Docker environment)
+            sudo cp $temp_dir/core-site.xml /etc/hadoop/
+            sudo cp $temp_dir/ozone-site.xml /etc/hadoop/
+            sudo cp $temp_dir/log4j.properties /etc/hadoop/
+
+            # OM configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/om/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/om/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/om/
+
+            # SCM configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/scm/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/scm/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/scm/
+
+            # DataNode configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/datanode/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/datanode/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/datanode/
+
+            # Recon configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/recon/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/recon/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/recon/
+
+            # S3G configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/s3g/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/s3g/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/s3g/
+
+            # HttpFS configurations
+            sudo cp $temp_dir/core-site.xml /opt/ozone/conf/httpfs/
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/conf/httpfs/
+            sudo cp $temp_dir/log4j.properties /opt/ozone/conf/httpfs/
+
+            # Legacy directories for backward compatibility
+            sudo cp $temp_dir/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
+            sudo cp $temp_dir/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
+            sudo cp $temp_dir/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
+
             rm -rf $temp_dir
         "
 
-        # Also copy to Ozone directory
-        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-            sudo cp /etc/hadoop/conf/core-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
-            sudo cp /etc/hadoop/conf/ozone-site.xml /opt/ozone/etc/hadoop/ 2>/dev/null || true
-            sudo cp /etc/hadoop/conf/log4j.properties /opt/ozone/etc/hadoop/ 2>/dev/null || true
-        "
-
-        log "Configuration files distributed to $host"
+        log "Configuration files distributed to $host with role-specific directories"
     done
 }
 
@@ -455,7 +496,15 @@ main() {
     log "Ozone configuration files generated and distributed successfully"
     log "Configuration files are available in:"
     log "  - Local: ./ozone-config/"
-    log "  - Remote hosts: /etc/hadoop/conf/ and /opt/ozone/etc/hadoop/"
+    log "  - Client configs (OZONE_CONF_DIR): /etc/hadoop/"
+    log "  - Server role-specific configs:"
+    log "    * OM: /opt/ozone/conf/om/"
+    log "    * SCM: /opt/ozone/conf/scm/"
+    log "    * DataNode: /opt/ozone/conf/datanode/"
+    log "    * Recon: /opt/ozone/conf/recon/"
+    log "    * S3G: /opt/ozone/conf/s3g/"
+    log "    * HttpFS: /opt/ozone/conf/httpfs/"
+    log "  - Legacy: /opt/ozone/etc/hadoop/"
 }
 
 # Check if script is being sourced or executed

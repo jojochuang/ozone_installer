@@ -541,7 +541,7 @@ wait_for_safe_mode_exit() {
             $OZONE_CMD admin safemode status 2>/dev/null || echo "FAILED"
         ' 2>/dev/null || echo "FAILED")
 
-        if [[ "$safe_mode_result" == *"OFF"* ]] || [[ "$safe_mode_result" == *"exited"* ]]; then
+        if [[ "$safe_mode_result" == *"OFF"* ]] || [[ "$safe_mode_result" == *"exited"* ]] || [[ "$safe_mode_result" == *"out of safe mode"* ]]; then
             log "Ozone has successfully exited safe mode!"
             return 0
         elif [[ "$safe_mode_result" == "FAILED" ]]; then

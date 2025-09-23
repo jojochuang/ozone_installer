@@ -319,6 +319,7 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
    - SSH server installed and configured
    - A user `rocky` with sudo privileges
    - SSH daemon configured for key-based authentication
+   - Process utilities (ps, pgrep) for Ozone service monitoring
 
 2. **Generates SSH Key Pair**: Creates RSA key pair (`rocky9_key` and `rocky9_key.pub`) for secure access
 

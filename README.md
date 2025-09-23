@@ -364,3 +364,88 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 - `setup-rocky9-ssh.sh` - Main setup script
 - `rocky9_key` - SSH private key (generated)
 - `rocky9_key.pub` - SSH public key (generated)
+
+## Ubuntu 24.04 Docker Container with SSH Access
+
+The `setup-ubuntu24-ssh.sh` script creates an Ubuntu 24.04 Docker container with SSH daemon configured for password-less authentication using SSH keys.
+
+### Prerequisites
+
+- Docker installed and running
+- SSH client available (usually pre-installed on Linux/macOS)
+
+### Quick Start
+
+1. Make the script executable (if not already):
+   ```bash
+   chmod +x setup-ubuntu24-ssh.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup-ubuntu24-ssh.sh
+   ```
+
+3. Connect to the container:
+   ```bash
+   ssh -i ubuntu24_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2223 ubuntu@localhost
+   ```
+
+   **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
+
+### Script Options
+
+- `./setup-ubuntu24-ssh.sh start` - Build and start the container (default)
+- `./setup-ubuntu24-ssh.sh stop` - Stop the running container
+- `./setup-ubuntu24-ssh.sh clean` - Remove container and image
+- `./setup-ubuntu24-ssh.sh connect` - Connect to the container via SSH
+- `./setup-ubuntu24-ssh.sh info` - Show connection information
+
+### What the Script Does
+
+1. **Builds an Ubuntu 24.04 Docker Image**: Creates a custom image based on Ubuntu 24.04 with:
+   - SSH server installed and configured
+   - A user `ubuntu` with sudo privileges
+   - SSH daemon configured for key-based authentication
+
+2. **Generates SSH Key Pair**: Creates RSA key pair (`ubuntu24_key` and `ubuntu24_key.pub`) for secure access
+
+3. **Starts the Container**: Runs the container with SSH port mapped to local port 2223
+
+4. **Configures SSH Access**: Copies the public key to the container for password-less authentication
+
+5. **Tests Connection**: Verifies that SSH access is working correctly
+
+### Container Details
+
+- **Base Image**: Ubuntu 24.04
+- **Container Name**: ubuntu24-ssh
+- **SSH Port**: 2223 (mapped from container port 22)
+- **Ozone Service Ports**: 9874 (OM), 9876 (SCM), 9888 (Recon), 9878 (S3 Gateway), 14000 (HttpFS), 9882 (Datanode)
+- **Observability Ports**: 9090 (Prometheus), 3000 (Grafana)
+- **Username**: ubuntu
+- **User Privileges**: sudo access without password
+- **Container Mode**: standard (privileged mode removed to fix SSH connectivity)
+- **SSH Keys**: `ubuntu24_key` (private) and `ubuntu24_key.pub` (public)
+
+### Security Notes
+
+- SSH password authentication is enabled but key-based authentication is used by default
+- Root login is disabled for security
+- The SSH keys are generated locally and should be kept secure
+
+### Troubleshooting
+
+1. **Docker not running**: Ensure Docker daemon is started
+2. **Port conflict**: If port 2223 is in use, modify the `SSH_PORT` variable in the script
+3. **SSH connection fails**: Wait a few seconds for the SSH daemon to fully start, then try again
+4. **Permission denied**: Ensure the SSH key files have correct permissions (600 for private key)
+5. **SSH host key verification failed**: If you see "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!" error, this is normal when containers are rebuilt. The script automatically handles this by cleaning up old host keys and using appropriate SSH options.
+6. **SSH connection issues with privileged mode**: The container runs in standard mode by default. If you manually add `--privileged` flag, it may interfere with SSH daemon operation.
+
+### Files
+
+- `Dockerfile.ubuntu24` - Docker configuration for Ubuntu 24.04 image
+- `setup-ubuntu24-ssh.sh` - Main setup script
+- `ubuntu24_key` - SSH private key (generated)
+- `ubuntu24_key.pub` - SSH public key (generated)

@@ -563,38 +563,38 @@ download_ozone_centrally() {
 
     # Check if we already have a local tarball or if LOCAL_TARBALL_PATH is specified
     if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
-        info "Using existing local tarball: $LOCAL_TARBALL_PATH"
+        info "Using existing local tarball: $LOCAL_TARBALL_PATH" >&2
         echo "$LOCAL_TARBALL_PATH"
         return 0
     fi
 
     if [[ -f "$local_tarball_path" ]]; then
-        info "Using existing downloaded tarball: $local_tarball_path"
+        info "Using existing downloaded tarball: $local_tarball_path" >&2
         echo "$local_tarball_path"
         return 0
     fi
 
-    info "Downloading Apache Ozone $OZONE_VERSION locally for distribution..."
+    info "Downloading Apache Ozone $OZONE_VERSION locally for distribution..." >&2
 
     # Download Ozone locally
     if command -v wget >/dev/null 2>&1; then
         if wget "$download_url" -O "$local_tarball_path"; then
-            info "Successfully downloaded Ozone tarball to $local_tarball_path"
+            info "Successfully downloaded Ozone tarball to $local_tarball_path" >&2
             echo "$local_tarball_path"
             return 0
         fi
     elif command -v curl >/dev/null 2>&1; then
         if curl -L "$download_url" -o "$local_tarball_path"; then
-            info "Successfully downloaded Ozone tarball to $local_tarball_path"
+            info "Successfully downloaded Ozone tarball to $local_tarball_path" >&2
             echo "$local_tarball_path"
             return 0
         fi
     else
-        error "Neither wget nor curl found. Cannot download Ozone."
+        error "Neither wget nor curl found. Cannot download Ozone." >&2
         return 1
     fi
 
-    error "Failed to download Ozone from $download_url"
+    error "Failed to download Ozone from $download_url" >&2
     return 1
 }
 

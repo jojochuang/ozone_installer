@@ -66,11 +66,14 @@ run_container() {
         -p 9878:9878 \
         -p 14000:14000 \
         -p 9882:9882 \
+        -p 9090:9090 \
+        -p 3000:3000 \
         $IMAGE_NAME
 
     echo "Container started successfully: $CONTAINER_NAME"
     echo "SSH port mapped to: $SSH_PORT"
     echo "Ozone service ports exposed: 9874, 9876, 9888, 9878, 14000, 9882"
+    echo "Observability ports exposed: 9090 (Prometheus), 3000 (Grafana)"
 }
 
 # Function to copy SSH public key to container
@@ -147,6 +150,10 @@ show_connection_info() {
     echo "  S3 Gateway: http://localhost:9878"
     echo "  HttpFS: http://localhost:14000"
     echo "  Datanode Web UI: http://localhost:9882"
+    echo
+    echo "Observability service ports exposed:"
+    echo "  Prometheus Web UI: http://localhost:9090"
+    echo "  Grafana Web UI: http://localhost:3000"
     echo
     echo "To stop the container:"
     echo "  docker stop $CONTAINER_NAME"

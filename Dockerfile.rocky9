@@ -37,5 +37,8 @@ EXPOSE 22
 # Expose Ozone service ports
 EXPOSE 9874 9876 9888 9878 14000 9882
 
+# Expose Prometheus and Grafana ports
+EXPOSE 9090 3000
+
 # Start SSH daemon
 CMD ["/usr/sbin/sshd", "-D"]

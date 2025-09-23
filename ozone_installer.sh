@@ -605,21 +605,21 @@ transfer_tarball_parallel() {
     local hosts=("$@")
     local max_concurrent=${MAX_CONCURRENT_TRANSFERS:-10}
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
-    
+
     if [[ -z "$local_tarball_path" ]] || [[ ! -f "$local_tarball_path" ]]; then
         info "No local tarball available, skipping parallel transfer"
         return 1
     fi
-    
+
     info "Transferring Ozone tarball to ${#hosts[@]} hosts (max $max_concurrent concurrent transfers)..."
-    
+
     local pids=()
     local active_transfers=0
     local failed_hosts=()
-    
+
     for host in "${hosts[@]}"; do
         host=$(echo "$host" | xargs)
-        
+
         # Wait if we've reached the maximum concurrent transfers
         while [[ $active_transfers -ge $max_concurrent ]]; do
             # Check for completed transfers
@@ -637,7 +637,7 @@ transfer_tarball_parallel() {
             done
             sleep 1
         done
-        
+
         # Start transfer for this host in background
         (
             # Create temporary directory on remote host first
@@ -649,13 +649,13 @@ transfer_tarball_parallel() {
                 echo "FAILED:$host:mkdir"
                 exit 1
             fi
-            
+
             # Transfer the tarball
             if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
                 # Verify the transfer was successful by checking file size
                 local_size=$(stat -c%s "$local_tarball_path" 2>/dev/null || echo "0")
                 remote_size=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "stat -c%s /tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz 2>/dev/null || echo 0" 2>/dev/null)
-                
+
                 if [[ "$local_size" == "$remote_size" ]] && [[ "$local_size" -gt 0 ]]; then
                     echo "SUCCESS:$host"
                 else
@@ -667,23 +667,23 @@ transfer_tarball_parallel() {
                 exit 1
             fi
         ) &
-        
+
         pids+=($!)
         ((active_transfers++))
         info "Started tarball transfer to $host (PID: $!)"
     done
-    
+
     # Wait for all remaining transfers to complete
     local failed_hosts=()
     local success_count=0
-    
+
     for pid in "${pids[@]}"; do
         if [[ -n "$pid" ]]; then
             wait "$pid"
             # The background process output should contain SUCCESS:host or FAILED:host
         fi
     done
-    
+
     # Count successful transfers by checking if tarballs actually exist on remote hosts
     for host in "${hosts[@]}"; do
         host=$(echo "$host" | xargs)
@@ -695,14 +695,14 @@ transfer_tarball_parallel() {
             warn "Tarball verification failed on $host"
         fi
     done
-    
+
     info "Parallel tarball transfers completed: $success_count/${#hosts[@]} successful"
-    
+
     if [[ ${#failed_hosts[@]} -gt 0 ]]; then
         warn "Failed transfers to: ${failed_hosts[*]}"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -751,7 +751,7 @@ install_ozone() {
             echo \"Using tarball transferred via parallel SCP\"
         else
             echo \"Tarball not found in parallel transfer directory, falling back to direct download...\"
-            
+
             if command -v wget >/dev/null 2>&1; then
                 wget \"$download_url\" -O ozone.tar.gz
             elif command -v curl >/dev/null 2>&1; then
@@ -880,11 +880,11 @@ main() {
     log "Downloading Ozone tarball centrally for efficient distribution..."
     local_tarball_path=$(download_ozone_centrally)
     download_exit_code=$?
-    
+
     if [[ $download_exit_code -ne 0 ]] || [[ -z "$local_tarball_path" ]]; then
         warn "Failed to download Ozone centrally (exit code: $download_exit_code, path: '$local_tarball_path')"
         warn "Will attempt to use existing local files or fall back to individual downloads"
-        
+
         # Try to find existing tarball for parallel transfer even if central download failed
         if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
             local_tarball_path="$LOCAL_TARBALL_PATH"

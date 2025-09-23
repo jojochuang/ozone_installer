@@ -1172,14 +1172,14 @@ main() {
         install_ozone "$host" "$local_tarball_path"
 
         # Install Prometheus if enabled
-        if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]]; then
+        if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
             install_prometheus "$host"
         else
             log "Skipping Prometheus installation (INSTALL_PROMETHEUS=$INSTALL_PROMETHEUS)"
         fi
 
         # Install Grafana if enabled
-        if [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+        if [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
             install_grafana "$host"
         else
             log "Skipping Grafana installation (INSTALL_GRAFANA=$INSTALL_GRAFANA)"
@@ -1198,13 +1198,13 @@ main() {
     log "1. Run ./generate_configurations.sh to create Ozone configuration files"
     log "2. Run ./start_ozone_services.sh to start Ozone services"
 
-    if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]] || [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+    if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]] || [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
         log ""
         log "Observability tools installed:"
-        if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]]; then
+        if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
             log "- Prometheus: $PROMETHEUS_INSTALL_DIR (port $PROMETHEUS_PORT)"
         fi
-        if [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+        if [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
             log "- Grafana: installed via package manager (port $GRAFANA_PORT)"
         fi
     fi

@@ -149,6 +149,8 @@ The repository includes automated checks for:
 - **File Permissions**: Ensures shell scripts are executable
 - **Markdown Linting**: Validates markdown documentation
 - **General File Checks**: Detects trailing whitespace, line endings, and large files
+- **Command Option Tests**: Validates that shell script command options work as documented
+- **Function Unit Tests**: Basic unit tests for key functions in shell scripts
 
 ### Running Checks Locally
 
@@ -170,6 +172,15 @@ make format
 # Fix shell script formatting
 make format-fix
 
+# Test shell script command options (as per README)
+make test-commands
+
+# Test shell script functions (basic unit tests)
+make test-functions
+
+# Run comprehensive precommit tests (command options + unit tests)
+make test-precommit
+
 # Install precommit tools
 make install-tools
 ```
@@ -180,8 +191,8 @@ The precommit checks run automatically on:
 - Push to `main` or `develop` branches
 - Pull requests targeting `main` or `develop` branches
 
-The workflow includes three jobs:
-1. **Shell Script Checks**: Linting, formatting, syntax, and permissions
+The workflow includes four jobs:
+1. **Shell Script Checks**: Linting, formatting, syntax, permissions, and precommit tests
 2. **Markdown Checks**: Documentation validation
 3. **File Checks**: General repository hygiene
 

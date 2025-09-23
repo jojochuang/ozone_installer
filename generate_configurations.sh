@@ -419,7 +419,7 @@ distribute_configs() {
 
             # Legacy directories for backward compatibility
             sudo mkdir -p /opt/ozone/etc/hadoop
-            
+
             # Set proper ownership and permissions for configuration directories
             sudo chown -R \$(whoami):\$(id -gn) /opt/ozone/conf/
             sudo chmod -R 755 /opt/ozone/conf/

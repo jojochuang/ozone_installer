@@ -146,6 +146,35 @@ After successful startup, access these web interfaces:
 
 ## Troubleshooting
 
+### Common Issues
+
+#### OM Fails to Start with "Operation not permitted"
+If you see an error like:
+```
+OM start failed with exception
+java.lang.RuntimeException: Failed to set directory permissions for /var/lib/hadoop-ozone/om/data: /var/lib/hadoop-ozone/om/data: Operation not permitted
+```
+
+This is a directory permission issue. To fix:
+
+1. **Run the verification script** to check current permissions:
+   ```bash
+   ./verify_permissions.sh
+   ```
+
+2. **Re-run the installer** to fix permissions automatically:
+   ```bash
+   ./ozone_installer.sh
+   ```
+
+3. **Manual fix** (if needed):
+   ```bash
+   # For each problematic directory:
+   sudo chown -R $(whoami):$(id -gn) /var/lib/hadoop-ozone/om/data
+   sudo chmod -R 750 /var/lib/hadoop-ozone/om/data
+   ```
+
+#### Check Service Logs
 Check service logs:
 - SCM: `/tmp/scm.log`
 - OM: `/tmp/om.log`

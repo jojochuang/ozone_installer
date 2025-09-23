@@ -281,12 +281,85 @@ The workflow includes four jobs:
 
 The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with SSH daemon configured for password-less authentication using SSH keys.
 
+## Ozone Multi-Container Docker Compose Setup
+
+The `setup-ozone-compose.sh` script creates a multi-container Ozone cluster using Docker Compose with separate containers for each service type:
+
+- 3 Ozone Manager (OM) containers
+- 3 Storage Container Manager (SCM) containers  
+- 1 Recon container
+- 1 S3 Gateway container
+- 3 DataNode containers
+- 1 HttpFS container
+- 2 Observability containers (Prometheus, Grafana)
+
+Each container runs Rocky Linux 9 with SSH daemon configured for password-less authentication.
+
+### Multi-Container Prerequisites
+
+- Docker and Docker Compose installed and running
+- SSH client available (usually pre-installed on Linux/macOS)
+
+### Multi-Container Quick Start
+
+1. Make the script executable (if not already):
+   ```bash
+   chmod +x setup-ozone-compose.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup-ozone-compose.sh
+   ```
+
+3. Connect to any container (example - OM1):
+   ```bash
+   ssh -i rocky9_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 rocky@localhost
+   ```
+
+4. Check cluster status:
+   ```bash
+   ./setup-ozone-compose.sh status
+   ```
+
+### Multi-Container Script Options
+
+- `./setup-ozone-compose.sh start` - Build and start the Ozone cluster (default)
+- `./setup-ozone-compose.sh stop` - Stop the running cluster
+- `./setup-ozone-compose.sh clean` - Remove all containers and volumes
+- `./setup-ozone-compose.sh status` - Show cluster status
+- `./setup-ozone-compose.sh connect <container>` - Connect to a specific container via SSH
+- `./setup-ozone-compose.sh info` - Show connection information
+
+Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3gateway`, `datanode1`, `datanode2`, `datanode3`, `httpfs`, `prometheus`, `grafana`
+
+### Container Port Mappings
+
+| Service | Container Name | SSH Port | Web UI Port | Service URL |
+|---------|----------------|----------|-------------|-------------|
+| OM1     | ozone-om1      | 2222     | 9874        | http://localhost:9874 |
+| OM2     | ozone-om2      | 2223     | 9875        | http://localhost:9875 |
+| OM3     | ozone-om3      | 2224     | 9873        | http://localhost:9873 |
+| SCM1    | ozone-scm1     | 2225     | 9876        | http://localhost:9876 |
+| SCM2    | ozone-scm2     | 2226     | 9877        | http://localhost:9877 |
+| SCM3    | ozone-scm3     | 2227     | 9879        | http://localhost:9879 |
+| Recon   | ozone-recon    | 2228     | 9888        | http://localhost:9888 |
+| S3GW    | ozone-s3gateway| 2229     | 9878        | http://localhost:9878 |
+| DN1     | ozone-datanode1| 2230     | 9882        | http://localhost:9882 |
+| DN2     | ozone-datanode2| 2231     | 9883        | http://localhost:9883 |
+| DN3     | ozone-datanode3| 2232     | 9884        | http://localhost:9884 |
+| HttpFS  | ozone-httpfs   | 2233     | 14000       | http://localhost:14000 |
+| Prometheus | ozone-prometheus | 2234 | 9090        | http://localhost:9090 |
+| Grafana | ozone-grafana  | 2235     | 3000        | http://localhost:3000 |
+
+## Single Container Setup (Legacy)
+
 ### Prerequisites
 
 - Docker installed and running
 - SSH client available (usually pre-installed on Linux/macOS)
 
-### Quick Start
+### Single Container Quick Start
 
 1. Make the script executable (if not already):
    ```bash
@@ -305,7 +378,7 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
    **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
 
-### Script Options
+### Single Container Script Options
 
 - `./setup-rocky9-ssh.sh start` - Build and start the container (default)
 - `./setup-rocky9-ssh.sh stop` - Stop the running container
@@ -360,7 +433,14 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 ### Files
 
+**Multi-Container Setup:**
+- `docker-compose.yml` - Docker Compose configuration for multi-container Ozone cluster
+- `setup-ozone-compose.sh` - Multi-container setup script
+- `ozone-compose.conf` - Configuration file for Docker Compose setup
+- `tests/test_setup_ozone_compose.sh` - Test script for multi-container setup
+
+**Single Container Setup:**
 - `Dockerfile.rocky9` - Docker configuration for Rocky9 image
-- `setup-rocky9-ssh.sh` - Main setup script
+- `setup-rocky9-ssh.sh` - Single container setup script
 - `rocky9_key` - SSH private key (generated)
 - `rocky9_key.pub` - SSH public key (generated)

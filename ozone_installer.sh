@@ -835,6 +835,216 @@ install_ozone() {
     "
 }
 
+# Function to install Prometheus
+install_prometheus() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Installing Prometheus on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        # Check if Prometheus is already installed
+        if [[ -f \"$PROMETHEUS_INSTALL_DIR/prometheus\" ]]; then
+            echo \"Prometheus already installed at $PROMETHEUS_INSTALL_DIR\"
+            \"$PROMETHEUS_INSTALL_DIR/prometheus\" --version 2>/dev/null || echo \"Prometheus version check failed\"
+            return 0
+        fi
+
+        echo \"Downloading Prometheus $PROMETHEUS_VERSION...\"
+
+        # Create temporary directory for download
+        temp_dir=\"/tmp/prometheus_install_\$\$\"
+        mkdir -p \"\$temp_dir\"
+        cd \"\$temp_dir\"
+
+        # Detect architecture
+        arch=\$(uname -m)
+        case \"\$arch\" in
+            x86_64)
+                arch_name=\"amd64\"
+                ;;
+            aarch64|arm64)
+                arch_name=\"arm64\"
+                ;;
+            *)
+                echo \"ERROR: Unsupported architecture: \$arch\"
+                exit 1
+                ;;
+        esac
+
+        # Download Prometheus
+        prometheus_url=\"https://github.com/prometheus/prometheus/releases/download/v$PROMETHEUS_VERSION/prometheus-$PROMETHEUS_VERSION.linux-\${arch_name}.tar.gz\"
+
+        if command -v wget >/dev/null 2>&1; then
+            wget \"\$prometheus_url\" -O prometheus.tar.gz
+        elif command -v curl >/dev/null 2>&1; then
+            curl -L \"\$prometheus_url\" -o prometheus.tar.gz
+        else
+            echo \"ERROR: Neither wget nor curl found. Cannot download Prometheus.\"
+            exit 1
+        fi
+
+        # Verify download
+        if [[ ! -f prometheus.tar.gz ]]; then
+            echo \"ERROR: Failed to download Prometheus from \$prometheus_url\"
+            exit 1
+        fi
+
+        echo \"Extracting Prometheus...\"
+        tar -xzf prometheus.tar.gz
+
+        # Find the extracted directory
+        prometheus_dir=\$(find . -maxdepth 1 -type d -name \"prometheus-*\" | head -1)
+        if [[ -z \"\$prometheus_dir\" ]]; then
+            echo \"ERROR: Could not find extracted Prometheus directory\"
+            exit 1
+        fi
+
+        echo \"Installing Prometheus to $PROMETHEUS_INSTALL_DIR...\"
+
+        # Create install and data directories
+        sudo mkdir -p \"$PROMETHEUS_INSTALL_DIR\"
+        sudo mkdir -p \"$PROMETHEUS_DATA_DIR\"
+
+        # Move binaries and configuration files
+        sudo mv \"\$prometheus_dir\"/prometheus \"$PROMETHEUS_INSTALL_DIR/\"
+        sudo mv \"\$prometheus_dir\"/promtool \"$PROMETHEUS_INSTALL_DIR/\"
+        sudo mv \"\$prometheus_dir\"/prometheus.yml \"$PROMETHEUS_INSTALL_DIR/\"
+        sudo mv \"\$prometheus_dir\"/console_libraries \"$PROMETHEUS_INSTALL_DIR/\"
+        sudo mv \"\$prometheus_dir\"/consoles \"$PROMETHEUS_INSTALL_DIR/\"
+
+        # Set proper ownership and permissions
+        sudo chown -R \$(whoami):\$(id -gn) \"$PROMETHEUS_INSTALL_DIR\"
+        sudo chown -R \$(whoami):\$(id -gn) \"$PROMETHEUS_DATA_DIR\"
+        sudo chmod +x \"$PROMETHEUS_INSTALL_DIR/prometheus\"
+        sudo chmod +x \"$PROMETHEUS_INSTALL_DIR/promtool\"
+
+        # Create symlink in /usr/local/bin for global access
+        if [[ ! -f /usr/local/bin/prometheus ]]; then
+            sudo ln -sf \"$PROMETHEUS_INSTALL_DIR/prometheus\" /usr/local/bin/prometheus
+        fi
+        if [[ ! -f /usr/local/bin/promtool ]]; then
+            sudo ln -sf \"$PROMETHEUS_INSTALL_DIR/promtool\" /usr/local/bin/promtool
+        fi
+
+        # Clean up
+        cd /
+        rm -rf \"\$temp_dir\"
+
+        # Verify installation
+        if [[ -f \"$PROMETHEUS_INSTALL_DIR/prometheus\" ]]; then
+            echo \"Prometheus installation successful:\"
+            \"$PROMETHEUS_INSTALL_DIR/prometheus\" --version
+            echo \"Prometheus installed at: $PROMETHEUS_INSTALL_DIR\"
+            echo \"Prometheus data directory: $PROMETHEUS_DATA_DIR\"
+            echo \"Prometheus binaries symlinked to: /usr/local/bin/\"
+        else
+            echo \"ERROR: Prometheus installation failed\"
+            exit 1
+        fi
+    "
+}
+
+# Function to install Grafana
+install_grafana() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Installing Grafana on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        # Check if Grafana is already installed
+        if command -v grafana-server >/dev/null 2>&1; then
+            echo \"Grafana already installed\"
+            grafana-server --version 2>/dev/null || echo \"Grafana version check failed\"
+            return 0
+        fi
+
+        # Detect package manager and distribution
+        if command -v yum >/dev/null 2>&1; then
+            PKG_MGR=\"yum\"
+        elif command -v dnf >/dev/null 2>&1; then
+            PKG_MGR=\"dnf\"
+        elif command -v apt-get >/dev/null 2>&1; then
+            PKG_MGR=\"apt-get\"
+        elif command -v zypper >/dev/null 2>&1; then
+            PKG_MGR=\"zypper\"
+        else
+            echo \"No supported package manager found\"
+            exit 1
+        fi
+
+        echo \"Using package manager: \$PKG_MGR\"
+
+        # Install Grafana based on package manager
+        case \$PKG_MGR in
+            \"yum\"|\"dnf\")
+                # Add Grafana repository
+                sudo tee /etc/yum.repos.d/grafana.repo << 'EOF'
+[grafana]
+name=grafana
+baseurl=https://rpm.grafana.com
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://rpm.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+EOF
+                # Install Grafana
+                sudo \$PKG_MGR install -y grafana
+                ;;
+
+            \"apt-get\")
+                # Install prerequisites
+                sudo apt-get update
+                sudo apt-get install -y apt-transport-https software-properties-common wget
+
+                # Add Grafana GPG key
+                sudo mkdir -p /etc/apt/keyrings/
+                wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+
+                # Add Grafana repository
+                echo \"deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main\" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+
+                # Update package list and install Grafana
+                sudo apt-get update
+                sudo apt-get install -y grafana
+                ;;
+
+            \"zypper\")
+                # Add Grafana repository
+                sudo zypper addrepo https://rpm.grafana.com grafana
+                sudo zypper --gpg-auto-import-keys refresh
+
+                # Install Grafana
+                sudo zypper install -y grafana
+                ;;
+        esac
+
+        # Create data and logs directories
+        sudo mkdir -p \"$GRAFANA_DATA_DIR\"
+        sudo mkdir -p \"$GRAFANA_LOGS_DIR\"
+
+        # Set proper ownership
+        sudo chown -R grafana:grafana \"$GRAFANA_DATA_DIR\"
+        sudo chown -R grafana:grafana \"$GRAFANA_LOGS_DIR\"
+
+        # Verify installation
+        if command -v grafana-server >/dev/null 2>&1; then
+            echo \"Grafana installation successful:\"
+            grafana-server --version
+            echo \"Grafana data directory: $GRAFANA_DATA_DIR\"
+            echo \"Grafana logs directory: $GRAFANA_LOGS_DIR\"
+            echo \"Note: Use 'sudo systemctl start grafana-server' to start Grafana\"
+            echo \"Note: Use 'sudo systemctl enable grafana-server' to enable auto-start\"
+        else
+            echo \"ERROR: Grafana installation failed\"
+            exit 1
+        fi
+    "
+}
+
 # Main function
 main() {
     log "Starting Ozone Installer"
@@ -956,6 +1166,20 @@ main() {
         # Install Apache Ozone (tarball already transferred in parallel)
         install_ozone "$host" "$local_tarball_path"
 
+        # Install Prometheus if enabled
+        if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]]; then
+            install_prometheus "$host"
+        else
+            log "Skipping Prometheus installation (INSTALL_PROMETHEUS=$INSTALL_PROMETHEUS)"
+        fi
+
+        # Install Grafana if enabled
+        if [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+            install_grafana "$host"
+        else
+            log "Skipping Grafana installation (INSTALL_GRAFANA=$INSTALL_GRAFANA)"
+        fi
+
         log "Host $host configuration completed"
     done
 
@@ -968,6 +1192,17 @@ main() {
     log "Next steps:"
     log "1. Run ./generate_configurations.sh to create Ozone configuration files"
     log "2. Run ./start_ozone_services.sh to start Ozone services"
+
+    if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]] || [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+        log ""
+        log "Observability tools installed:"
+        if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]]; then
+            log "- Prometheus: $PROMETHEUS_INSTALL_DIR (port $PROMETHEUS_PORT)"
+        fi
+        if [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
+            log "- Grafana: installed via package manager (port $GRAFANA_PORT)"
+        fi
+    fi
 }
 
 # Check if script is being sourced or executed

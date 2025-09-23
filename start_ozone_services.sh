@@ -367,6 +367,12 @@ start_recon() {
         if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "Recon is already running"
         else
+            # Clean up stale RocksDB lock files before starting Recon
+            echo "Cleaning up stale RocksDB lock files..."
+            find /var/lib/hadoop-ozone/recon/data -name "LOCK" -type f -delete 2>/dev/null || true
+            find /var/lib/hadoop-ozone/recon/scm/data -name "LOCK" -type f -delete 2>/dev/null || true
+            find /var/lib/hadoop-ozone/recon/om/data -name "LOCK" -type f -delete 2>/dev/null || true
+            
             echo "Starting Recon in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
             nohup $OZONE_CMD --daemon start recon > /tmp/recon.log 2>&1 &
             sleep 5

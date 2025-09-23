@@ -560,9 +560,160 @@ install_time_sync() {
     '
 }
 
+# Function to download Ozone tarball locally for distribution
+download_ozone_centrally() {
+    local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
+    local local_tarball_path="/tmp/ozone-${OZONE_VERSION}.tar.gz"
+
+    # Check if we already have a local tarball or if LOCAL_TARBALL_PATH is specified
+    if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
+        info "Using existing local tarball: $LOCAL_TARBALL_PATH" >&2
+        echo "$LOCAL_TARBALL_PATH"
+        return 0
+    fi
+
+    if [[ -f "$local_tarball_path" ]]; then
+        info "Using existing downloaded tarball: $local_tarball_path" >&2
+        echo "$local_tarball_path"
+        return 0
+    fi
+
+    info "Downloading Apache Ozone $OZONE_VERSION locally for distribution..." >&2
+
+    # Download Ozone locally
+    if command -v wget >/dev/null 2>&1; then
+        if wget "$download_url" -O "$local_tarball_path"; then
+            info "Successfully downloaded Ozone tarball to $local_tarball_path" >&2
+            echo "$local_tarball_path"
+            return 0
+        fi
+    elif command -v curl >/dev/null 2>&1; then
+        if curl -L "$download_url" -o "$local_tarball_path"; then
+            info "Successfully downloaded Ozone tarball to $local_tarball_path" >&2
+            echo "$local_tarball_path"
+            return 0
+        fi
+    else
+        error "Neither wget nor curl found. Cannot download Ozone." >&2
+        return 1
+    fi
+
+    error "Failed to download Ozone from $download_url" >&2
+    return 1
+}
+
+# Function to transfer tarball to multiple hosts in parallel
+transfer_tarball_parallel() {
+    local local_tarball_path=$1
+    shift
+    local hosts=("$@")
+    local max_concurrent=${MAX_CONCURRENT_TRANSFERS:-10}
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    if [[ -z "$local_tarball_path" ]] || [[ ! -f "$local_tarball_path" ]]; then
+        info "No local tarball available, skipping parallel transfer"
+        return 1
+    fi
+
+    info "Transferring Ozone tarball to ${#hosts[@]} hosts (max $max_concurrent concurrent transfers)..."
+
+    local pids=()
+    local active_transfers=0
+    local failed_hosts=()
+
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+
+        # Wait if we've reached the maximum concurrent transfers
+        while [[ $active_transfers -ge $max_concurrent ]]; do
+            # Check for completed transfers
+            for i in "${!pids[@]}"; do
+                if ! kill -0 "${pids[$i]}" 2>/dev/null; then
+                    wait "${pids[$i]}"
+                    if [[ $? -eq 0 ]]; then
+                        info "Tarball transfer completed successfully"
+                    else
+                        warn "Tarball transfer failed for one host"
+                    fi
+                    unset pids[$i]
+                    ((active_transfers--))
+                fi
+            done
+            sleep 1
+        done
+
+        # Start transfer for this host in background
+        (
+            # Create temporary directory on remote host first
+            # Use a consistent directory name that install_ozone() will also use
+            if ! ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+                temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
+                mkdir -p \"\$temp_dir\"
+            " 2>/dev/null; then
+                echo "FAILED:$host:mkdir"
+                exit 1
+            fi
+
+            # Transfer the tarball
+            if scp -i "$ssh_key_expanded" -P "$SSH_PORT" -o StrictHostKeyChecking=no "$local_tarball_path" "$SSH_USER@$host:/tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
+                # Verify the transfer was successful by checking file size
+                local_size=$(stat -c%s "$local_tarball_path" 2>/dev/null || echo "0")
+                remote_size=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "stat -c%s /tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz 2>/dev/null || echo 0" 2>/dev/null)
+
+                if [[ "$local_size" == "$remote_size" ]] && [[ "$local_size" -gt 0 ]]; then
+                    echo "SUCCESS:$host"
+                else
+                    echo "FAILED:$host:size_mismatch"
+                    exit 1
+                fi
+            else
+                echo "FAILED:$host:scp"
+                exit 1
+            fi
+        ) &
+
+        pids+=($!)
+        ((active_transfers++))
+        info "Started tarball transfer to $host (PID: $!)"
+    done
+
+    # Wait for all remaining transfers to complete
+    local failed_hosts=()
+    local success_count=0
+
+    for pid in "${pids[@]}"; do
+        if [[ -n "$pid" ]]; then
+            wait "$pid"
+            # The background process output should contain SUCCESS:host or FAILED:host
+        fi
+    done
+
+    # Count successful transfers by checking if tarballs actually exist on remote hosts
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+        if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -f /tmp/ozone_install_${OZONE_VERSION}_parallel/ozone.tar.gz" 2>/dev/null; then
+            ((success_count++))
+            info "Verified tarball on $host"
+        else
+            failed_hosts+=("$host")
+            warn "Tarball verification failed on $host"
+        fi
+    done
+
+    info "Parallel tarball transfers completed: $success_count/${#hosts[@]} successful"
+
+    if [[ ${#failed_hosts[@]} -gt 0 ]]; then
+        warn "Failed transfers to: ${failed_hosts[*]}"
+        return 1
+    fi
+
+    return 0
+}
+
 # Function to download and install Ozone
 install_ozone() {
     local host=$1
+    local local_tarball_path=$2
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
 
     info "Installing Apache Ozone on $host"
@@ -570,9 +721,10 @@ install_ozone() {
     # Expand the download URL with the actual version
     local download_url=$(echo "$OZONE_DOWNLOAD_URL" | sed "s/\${OZONE_VERSION}/$OZONE_VERSION/g")
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Check if Ozone is already installed
-        if [[ -f \"$OZONE_INSTALL_DIR/bin/ozone\" ]]; then
+    # Check if Ozone is already installed on the remote host
+    if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -f \"$OZONE_INSTALL_DIR/bin/ozone\"" 2>/dev/null; then
+        info "Ozone already installed on $host, running version check..."
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
             echo \"Ozone already installed at $OZONE_INSTALL_DIR\"
             # Set up environment variables for version check
             export JAVA_HOME=/usr/lib/jvm/java
@@ -586,30 +738,38 @@ install_ozone() {
                 export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
             fi
             \"$OZONE_INSTALL_DIR/bin/ozone\" version
-            return 0
-        fi
+        "
+        info "Skipping installation on $host - Ozone already present"
+        return 0
+    fi
 
-        echo \"Downloading Apache Ozone $OZONE_VERSION...\"
-
-        # Create temporary directory for download
-        temp_dir=\"/tmp/ozone_install_\$\$\"
+    # Proceed with installation - check if tarball was already transferred via parallel SCP
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        # Create temporary directory for installation (same as used in parallel transfer)
+        temp_dir=\"/tmp/ozone_install_${OZONE_VERSION}_parallel\"
         mkdir -p \"\$temp_dir\"
         cd \"\$temp_dir\"
 
-        # Download Ozone
-        if command -v wget >/dev/null 2>&1; then
-            wget \"$download_url\" -O ozone.tar.gz
-        elif command -v curl >/dev/null 2>&1; then
-            curl -L \"$download_url\" -o ozone.tar.gz
+        # Check if tarball was already transferred via parallel SCP
+        if [[ -f \"ozone.tar.gz\" ]]; then
+            echo \"Using tarball transferred via parallel SCP\"
         else
-            echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
-            exit 1
-        fi
+            echo \"Tarball not found in parallel transfer directory, falling back to direct download...\"
 
-        # Verify download
-        if [[ ! -f ozone.tar.gz ]]; then
-            echo \"ERROR: Failed to download Ozone from $download_url\"
-            exit 1
+            if command -v wget >/dev/null 2>&1; then
+                wget \"$download_url\" -O ozone.tar.gz
+            elif command -v curl >/dev/null 2>&1; then
+                curl -L \"$download_url\" -o ozone.tar.gz
+            else
+                echo \"ERROR: Neither wget nor curl found. Cannot download Ozone.\"
+                exit 1
+            fi
+
+            # Verify download
+            if [[ ! -f ozone.tar.gz ]]; then
+                echo \"ERROR: Failed to download Ozone from $download_url\"
+                exit 1
+            fi
         fi
 
         echo \"Extracting Ozone...\"
@@ -720,6 +880,45 @@ main() {
     jdk_version=$(ask_jdk_version)
     log "Selected JDK version: $jdk_version"
 
+    # Download Ozone tarball centrally for distribution
+    log "Downloading Ozone tarball centrally for efficient distribution..."
+    local_tarball_path=$(download_ozone_centrally)
+    download_exit_code=$?
+
+    if [[ $download_exit_code -ne 0 ]] || [[ -z "$local_tarball_path" ]]; then
+        warn "Failed to download Ozone centrally (exit code: $download_exit_code, path: '$local_tarball_path')"
+        warn "Will attempt to use existing local files or fall back to individual downloads"
+
+        # Try to find existing tarball for parallel transfer even if central download failed
+        if [[ -n "${LOCAL_TARBALL_PATH:-}" ]] && [[ -f "$LOCAL_TARBALL_PATH" ]]; then
+            local_tarball_path="$LOCAL_TARBALL_PATH"
+            info "Found existing custom tarball: $LOCAL_TARBALL_PATH"
+        elif [[ -f "/tmp/ozone-${OZONE_VERSION}.tar.gz" ]]; then
+            local_tarball_path="/tmp/ozone-${OZONE_VERSION}.tar.gz"
+            info "Found existing downloaded tarball: $local_tarball_path"
+        else
+            local_tarball_path=""
+            info "No existing tarball found for parallel transfer"
+        fi
+    else
+        info "Successfully obtained tarball for distribution: $local_tarball_path"
+    fi
+
+    # Perform parallel tarball transfer to all hosts (if tarball available)
+    parallel_transfer_success=false
+    if [[ -n "$local_tarball_path" ]] && [[ -f "$local_tarball_path" ]]; then
+        log "Starting parallel tarball transfer using: $local_tarball_path"
+        if transfer_tarball_parallel "$local_tarball_path" "${HOSTS[@]}"; then
+            parallel_transfer_success=true
+            log "Parallel tarball transfers completed successfully"
+        else
+            warn "Some parallel tarball transfers failed - affected hosts will fall back to direct download"
+        fi
+    else
+        log "No local tarball available - hosts will download directly from Apache"
+        log "Reasons: local_tarball_path='$local_tarball_path', file_exists=$(test -f "$local_tarball_path" && echo "yes" || echo "no")"
+    fi
+
     # Configure each host
     for host in "${HOSTS[@]}"; do
         host=$(echo "$host" | xargs)
@@ -754,11 +953,16 @@ main() {
         # Install time synchronization
         install_time_sync "$host"
 
-        # Install Apache Ozone
-        install_ozone "$host"
+        # Install Apache Ozone (tarball already transferred in parallel)
+        install_ozone "$host" "$local_tarball_path"
 
         log "Host $host configuration completed"
     done
+
+    # Preserve centrally downloaded tarball for future reuse
+    if [[ -n "$local_tarball_path" ]] && [[ "$local_tarball_path" == "/tmp/ozone-"* ]] && [[ -f "$local_tarball_path" ]]; then
+        log "Preserving centrally downloaded tarball for reuse: $local_tarball_path"
+    fi
 
     log "Ozone Installer completed successfully"
     log "Next steps:"

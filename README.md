@@ -46,6 +46,12 @@ SSH_PORT="2222"
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
+
+# Optional: Use local tarball to skip download (for better scalability)
+# LOCAL_TARBALL_PATH="/path/to/ozone-2.0.0.tar.gz"
+
+# Optional: Configure parallel transfers (default: 10)
+MAX_CONCURRENT_TRANSFERS=10
 ```
 
 ## Usage
@@ -63,7 +69,28 @@ This will:
 - Validate filesystem requirements
 - Install selected JDK version
 - Install and configure time synchronization
-- Download and install Apache Ozone binary
+- **Download Ozone binary once and distribute to all hosts** (scalable for large clusters)
+
+### Scalability Features
+
+The installer automatically optimizes for large clusters by:
+- **Centralized Download**: Downloads the Ozone tarball once on the installer machine
+- **Parallel SCP Distribution**: Transfers the tarball to multiple hosts simultaneously (up to 10 concurrent transfers)
+- **Configurable Concurrency**: Control parallel transfers via `MAX_CONCURRENT_TRANSFERS` setting
+- **Fallback Mechanism**: Falls back to direct download if SCP transfer fails
+- **Local Tarball Support**: Can use a pre-downloaded tarball via `LOCAL_TARBALL_PATH` configuration
+
+This approach scales efficiently to 100+ hosts without overwhelming Apache's download servers, and the parallel transfers significantly reduce installation time.
+
+### Testing the Scalability Improvements
+
+Run the included test script to see the scalability improvements in action:
+
+```bash
+./test_scalability.sh
+```
+
+This demonstrates how the new approach reduces external downloads from N (number of hosts) to 1.
 
 ### 2. Generate configuration files:
 ```bash

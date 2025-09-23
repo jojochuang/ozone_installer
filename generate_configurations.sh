@@ -119,7 +119,7 @@ create_ozone_site_xml() {
 
   <property>
     <name>ozone.scm.client.address</name>
-    <value>$primary_host:9863</value>
+    <value>$primary_host:9860</value>
     <description>The address and port for the SCM client</description>
   </property>
 

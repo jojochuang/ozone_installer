@@ -955,10 +955,9 @@ main() {
         log "Host $host configuration completed"
     done
 
-    # Clean up centrally downloaded tarball if it was downloaded by us
-    if [[ -n "$local_tarball_path" ]] && [[ "$local_tarball_path" == "/tmp/ozone-"* ]]; then
-        log "Cleaning up centrally downloaded tarball: $local_tarball_path"
-        rm -f "$local_tarball_path"
+    # Preserve centrally downloaded tarball for future reuse
+    if [[ -n "$local_tarball_path" ]] && [[ "$local_tarball_path" == "/tmp/ozone-"* ]] && [[ -f "$local_tarball_path" ]]; then
+        log "Preserving centrally downloaded tarball for reuse: $local_tarball_path"
     fi
 
     log "Ozone Installer completed successfully"

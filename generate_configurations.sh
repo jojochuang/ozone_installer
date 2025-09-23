@@ -119,7 +119,7 @@ create_ozone_site_xml() {
 
   <property>
     <name>ozone.scm.client.address</name>
-    <value>$primary_host:9863</value>
+    <value>$primary_host:9860</value>
     <description>The address and port for the SCM client</description>
   </property>
 
@@ -419,6 +419,14 @@ distribute_configs() {
 
             # Legacy directories for backward compatibility
             sudo mkdir -p /opt/ozone/etc/hadoop
+
+            # Set proper ownership and permissions for configuration directories
+            sudo chown -R \$(whoami):\$(id -gn) /opt/ozone/conf/
+            sudo chmod -R 755 /opt/ozone/conf/
+            sudo chown -R \$(whoami):\$(id -gn) /opt/ozone/etc/hadoop/
+            sudo chmod -R 755 /opt/ozone/etc/hadoop/
+            sudo chown -R \$(whoami):\$(id -gn) /etc/hadoop/
+            sudo chmod -R 755 /etc/hadoop/
         "
 
         # Copy configuration files to temporary location first, then move with sudo

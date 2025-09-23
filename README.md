@@ -76,6 +76,7 @@ This will:
 - Gather host information (hostname, IP, CPU, OS)
 - Configure system settings (CPU governor, THP, SELinux, swappiness)
 - Validate filesystem requirements
+- Install basic utilities (including tput, required by Ozone)
 - Install selected JDK version
 - Install and configure time synchronization
 - Download and install Apache Ozone binary
@@ -143,10 +144,11 @@ This will:
 
 The installer automatically configures:
 
-1. **CPU Governor**: Set to `performance` mode
-2. **Transparent Huge Pages (THP)**: Disabled
-3. **SELinux**: Disabled (if present)
-4. **VM Swappiness**: Set to 1 to minimize swapping
+1. **Basic Utilities**: Installs essential packages including `tput` (required by Ozone)
+2. **CPU Governor**: Set to `performance` mode
+3. **Transparent Huge Pages (THP)**: Disabled
+4. **SELinux**: Disabled (if present)
+5. **VM Swappiness**: Set to 1 to minimize swapping
 
 ## Web UIs
 

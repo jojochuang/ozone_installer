@@ -367,6 +367,13 @@ start_recon() {
         if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" >/dev/null; then
             echo "Recon is already running"
         else
+            # Ensure Recon directories exist with proper permissions
+            echo "Ensuring Recon directories exist with proper permissions..."
+            sudo mkdir -p /var/lib/hadoop-ozone/recon/data
+            sudo mkdir -p /var/lib/hadoop-ozone/recon/scm/data
+            sudo mkdir -p /var/lib/hadoop-ozone/recon/om/data
+            sudo chown -R $(whoami):$(id -gn) /var/lib/hadoop-ozone/recon
+            
             # Clean up stale RocksDB lock files before starting Recon
             echo "Cleaning up stale RocksDB lock files..."
             find /var/lib/hadoop-ozone/recon/data -name "LOCK" -type f -delete 2>/dev/null || true

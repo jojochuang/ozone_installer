@@ -714,7 +714,7 @@ install_prometheus() {
 
         # Download Prometheus
         prometheus_url=\"https://github.com/prometheus/prometheus/releases/download/v$PROMETHEUS_VERSION/prometheus-$PROMETHEUS_VERSION.linux-\${arch_name}.tar.gz\"
-        
+
         if command -v wget >/dev/null 2>&1; then
             wget \"\$prometheus_url\" -O prometheus.tar.gz
         elif command -v curl >/dev/null 2>&1; then
@@ -834,29 +834,29 @@ EOF
                 # Install Grafana
                 sudo \$PKG_MGR install -y grafana
                 ;;
-                
+
             \"apt-get\")
                 # Install prerequisites
                 sudo apt-get update
                 sudo apt-get install -y apt-transport-https software-properties-common wget
-                
+
                 # Add Grafana GPG key
                 sudo mkdir -p /etc/apt/keyrings/
                 wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
-                
+
                 # Add Grafana repository
                 echo \"deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main\" | sudo tee -a /etc/apt/sources.list.d/grafana.list
-                
+
                 # Update package list and install Grafana
                 sudo apt-get update
                 sudo apt-get install -y grafana
                 ;;
-                
+
             \"zypper\")
                 # Add Grafana repository
                 sudo zypper addrepo https://rpm.grafana.com grafana
                 sudo zypper --gpg-auto-import-keys refresh
-                
+
                 # Install Grafana
                 sudo zypper install -y grafana
                 ;;
@@ -865,7 +865,7 @@ EOF
         # Create data and logs directories
         sudo mkdir -p \"$GRAFANA_DATA_DIR\"
         sudo mkdir -p \"$GRAFANA_LOGS_DIR\"
-        
+
         # Set proper ownership
         sudo chown -R grafana:grafana \"$GRAFANA_DATA_DIR\"
         sudo chown -R grafana:grafana \"$GRAFANA_LOGS_DIR\"
@@ -988,7 +988,7 @@ main() {
     log "Next steps:"
     log "1. Run ./generate_configurations.sh to create Ozone configuration files"
     log "2. Run ./start_ozone_services.sh to start Ozone services"
-    
+
     if [[ "${INSTALL_PROMETHEUS,,}" == "true" ]] || [[ "${INSTALL_GRAFANA,,}" == "true" ]]; then
         log ""
         log "Observability tools installed:"

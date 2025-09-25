@@ -312,9 +312,14 @@ Each container runs Rocky Linux 9 with SSH daemon configured for password-less a
    ./setup-ozone-compose.sh
    ```
 
-3. Connect to any container (example - OM1):
+3. Connect to any container:
    ```bash
-   ssh -i rocky9_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 rocky@localhost
+   ./setup-ozone-compose.sh connect om1
+   ```
+   
+   Or use docker exec directly:
+   ```bash
+   docker exec -it ozone-om1 bash
    ```
 
 4. Check cluster status:
@@ -335,22 +340,26 @@ Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3g
 
 ### Container Port Mappings
 
-| Service | Container Name | SSH Port | Web UI Port | Service URL |
-|---------|----------------|----------|-------------|-------------|
-| OM1     | ozone-om1      | 2222     | 9874        | http://localhost:9874 |
-| OM2     | ozone-om2      | 2223     | 9875        | http://localhost:9875 |
-| OM3     | ozone-om3      | 2224     | 9873        | http://localhost:9873 |
-| SCM1    | ozone-scm1     | 2225     | 9876        | http://localhost:9876 |
-| SCM2    | ozone-scm2     | 2226     | 9877        | http://localhost:9877 |
-| SCM3    | ozone-scm3     | 2227     | 9879        | http://localhost:9879 |
-| Recon   | ozone-recon    | 2228     | 9888        | http://localhost:9888 |
-| S3GW    | ozone-s3gateway| 2229     | 9878        | http://localhost:9878 |
-| DN1     | ozone-datanode1| 2230     | 9882        | http://localhost:9882 |
-| DN2     | ozone-datanode2| 2231     | 9883        | http://localhost:9883 |
-| DN3     | ozone-datanode3| 2232     | 9884        | http://localhost:9884 |
-| HttpFS  | ozone-httpfs   | 2233     | 14000       | http://localhost:14000 |
-| Prometheus | ozone-prometheus | 2234 | 9090        | http://localhost:9090 |
-| Grafana | ozone-grafana  | 2235     | 3000        | http://localhost:3000 |
+All services run on standard ports within the Docker network. Access containers using `docker exec`:
+
+| Service | Container Name | Internal Ports | Access Method |
+|---------|----------------|----------------|---------------|
+| OM1     | ozone-om1      | 22, 9874       | `docker exec -it ozone-om1 bash` |
+| OM2     | ozone-om2      | 22, 9874       | `docker exec -it ozone-om2 bash` |
+| OM3     | ozone-om3      | 22, 9874       | `docker exec -it ozone-om3 bash` |
+| SCM1    | ozone-scm1     | 22, 9876       | `docker exec -it ozone-scm1 bash` |
+| SCM2    | ozone-scm2     | 22, 9876       | `docker exec -it ozone-scm2 bash` |
+| SCM3    | ozone-scm3     | 22, 9876       | `docker exec -it ozone-scm3 bash` |
+| Recon   | ozone-recon    | 22, 9888       | `docker exec -it ozone-recon bash` |
+| S3GW    | ozone-s3gateway| 22, 9878       | `docker exec -it ozone-s3gateway bash` |
+| DN1     | ozone-datanode1| 22, 9882       | `docker exec -it ozone-datanode1 bash` |
+| DN2     | ozone-datanode2| 22, 9882       | `docker exec -it ozone-datanode2 bash` |
+| DN3     | ozone-datanode3| 22, 9882       | `docker exec -it ozone-datanode3 bash` |
+| HttpFS  | ozone-httpfs   | 22, 14000      | `docker exec -it ozone-httpfs bash` |
+| Prometheus | ozone-prometheus | 22, 9090    | `docker exec -it ozone-prometheus bash` |
+| Grafana | ozone-grafana  | 22, 3000       | `docker exec -it ozone-grafana bash` |
+
+Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
 
 ## Single Container Setup (Legacy)
 

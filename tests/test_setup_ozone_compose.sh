@@ -168,22 +168,22 @@ test_compose_structure() {
         0
 }
 
-# Test 6: Port mapping validation
-test_port_mappings() {
-    run_test "OM services have unique SSH ports" \
-        "grep -A10 '^  om[123]:' $COMPOSE_FILE | grep '[0-9]\+:22' | wc -l | grep -q '^3$'" \
+# Test 6: Container configuration validation
+test_container_config() {
+    run_test "OM services have no port exposures" \
+        "grep -A10 '^  om[123]:' $COMPOSE_FILE | grep -c 'ports:' | grep -q '^0$'" \
         0
 
-    run_test "SCM services have unique SSH ports" \
-        "grep -A10 '^  scm[123]:' $COMPOSE_FILE | grep '[0-9]\+:22' | wc -l | grep -q '^3$'" \
+    run_test "SCM services have no port exposures" \
+        "grep -A10 '^  scm[123]:' $COMPOSE_FILE | grep -c 'ports:' | grep -q '^0$'" \
         0
 
-    run_test "DataNode services have unique web UI ports" \
-        "grep -A10 '^  datanode[123]:' $COMPOSE_FILE | grep '[0-9]\+:9882' | wc -l | grep -q '^3$'" \
+    run_test "DataNode services have no port exposures" \
+        "grep -A10 '^  datanode[123]:' $COMPOSE_FILE | grep -c 'ports:' | grep -q '^0$'" \
         0
 
-    run_test "All services have unique SSH ports" \
-        "grep -E '[0-9]+:22' $COMPOSE_FILE | grep -o '[0-9]\+:22' | sort -u | wc -l | grep -q '^14$'" \
+    run_test "All services use docker exec instead of SSH ports" \
+        "! grep -E '[0-9]+:22' $COMPOSE_FILE" \
         0
 }
 
@@ -209,7 +209,7 @@ main() {
     test_compose_file || true
     test_script_structure || true
     test_compose_structure || true
-    test_port_mappings || true
+    test_container_config || true
     test_invalid_option || true
     test_valid_options || true
     set -e

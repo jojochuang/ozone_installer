@@ -283,22 +283,49 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 ## Ozone Multi-Container Docker Compose Setup
 
-The `setup-ozone-compose.sh` script creates a multi-container Ozone cluster using Docker Compose with separate containers for each service type:
+There are now **two approaches** for running Ozone in Docker containers:
 
-- 3 Ozone Manager (OM) containers
-- 3 Storage Container Manager (SCM) containers  
-- 1 Recon container
-- 1 S3 Gateway container
-- 3 DataNode containers
-- 1 HttpFS container
-- 2 Observability containers (Prometheus, Grafana)
+### 1. Docker Exec Access (Internal Networking)
+Use `setup-ozone-compose.sh` for containerized access via `docker exec`:
 
-Each container runs Rocky Linux 9 with SSH daemon configured for password-less authentication.
+```bash
+# Start cluster
+./setup-ozone-compose.sh start
+
+# Connect to containers
+./setup-ozone-compose.sh connect om1
+docker exec -it ozone-om1 bash
+```
+
+### 2. SSH Access (Treat Containers as Remote Hosts)
+Use `setup-ozone-docker-ssh.sh` to enable SSH access to containers, allowing you to use `ozone_installer.sh`:
+
+```bash
+# Start cluster with SSH access
+./setup-ozone-docker-ssh.sh start
+
+# SSH to containers as if they were remote hosts
+ssh om1
+ssh scm1
+ssh datanode1
+
+# Use ozone_installer.sh with containers
+CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh
+```
+
+Both approaches create the same 14-container setup:
+- **3 Ozone Manager (OM) containers** for high availability
+- **3 Storage Container Manager (SCM) containers** for distributed storage management
+- **3 DataNode containers** for distributed data storage
+- **1 Recon container** for monitoring and reconciliation
+- **1 S3 Gateway container** for S3-compatible API access
+- **1 HttpFS container** for HTTP filesystem access
+- **2 Observability containers** (Prometheus + Grafana) for metrics and dashboards
 
 ### Multi-Container Prerequisites
 
 - Docker and Docker Compose installed and running
-- SSH client available (usually pre-installed on Linux/macOS)
+- SSH client available (for SSH access approach)
 
 ### Multi-Container Quick Start
 
@@ -340,24 +367,35 @@ Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3g
 
 ### Container Port Mappings
 
+**Docker Exec Access (setup-ozone-compose.sh):**
 All services run on standard ports within the Docker network. Access containers using `docker exec`:
 
 | Service | Container Name | Internal Ports | Access Method |
 |---------|----------------|----------------|---------------|
-| OM1     | ozone-om1      | 22, 9874       | `docker exec -it ozone-om1 bash` |
-| OM2     | ozone-om2      | 22, 9874       | `docker exec -it ozone-om2 bash` |
-| OM3     | ozone-om3      | 22, 9874       | `docker exec -it ozone-om3 bash` |
-| SCM1    | ozone-scm1     | 22, 9876       | `docker exec -it ozone-scm1 bash` |
-| SCM2    | ozone-scm2     | 22, 9876       | `docker exec -it ozone-scm2 bash` |
-| SCM3    | ozone-scm3     | 22, 9876       | `docker exec -it ozone-scm3 bash` |
-| Recon   | ozone-recon    | 22, 9888       | `docker exec -it ozone-recon bash` |
-| S3GW    | ozone-s3gateway| 22, 9878       | `docker exec -it ozone-s3gateway bash` |
-| DN1     | ozone-datanode1| 22, 9882       | `docker exec -it ozone-datanode1 bash` |
-| DN2     | ozone-datanode2| 22, 9882       | `docker exec -it ozone-datanode2 bash` |
-| DN3     | ozone-datanode3| 22, 9882       | `docker exec -it ozone-datanode3 bash` |
-| HttpFS  | ozone-httpfs   | 22, 14000      | `docker exec -it ozone-httpfs bash` |
-| Prometheus | ozone-prometheus | 22, 9090    | `docker exec -it ozone-prometheus bash` |
-| Grafana | ozone-grafana  | 22, 3000       | `docker exec -it ozone-grafana bash` |
+| OM1-3   | ozone-om1-3    | 22, 9874       | `docker exec -it ozone-om1 bash` |
+| SCM1-3  | ozone-scm1-3   | 22, 9876       | `docker exec -it ozone-scm1 bash` |
+| DataNodes | ozone-datanode1-3 | 22, 9882    | `docker exec -it ozone-datanode1 bash` |
+| Others  | ozone-*        | 22, service port | `docker exec -it ozone-<service> bash` |
+
+**SSH Access (setup-ozone-docker-ssh.sh):**
+Containers are accessible via SSH on unique host ports:
+
+| Service | Container Name | SSH Port | Access Method |
+|---------|----------------|----------|---------------|
+| OM1     | ozone-om1      | 2222     | `ssh om1` or `ssh -p 2222 rocky@localhost` |
+| OM2     | ozone-om2      | 2223     | `ssh om2` or `ssh -p 2223 rocky@localhost` |
+| OM3     | ozone-om3      | 2224     | `ssh om3` or `ssh -p 2224 rocky@localhost` |
+| SCM1    | ozone-scm1     | 2225     | `ssh scm1` or `ssh -p 2225 rocky@localhost` |
+| SCM2    | ozone-scm2     | 2226     | `ssh scm2` or `ssh -p 2226 rocky@localhost` |
+| SCM3    | ozone-scm3     | 2227     | `ssh scm3` or `ssh -p 2227 rocky@localhost` |
+| Recon   | ozone-recon    | 2228     | `ssh recon` or `ssh -p 2228 rocky@localhost` |
+| S3GW    | ozone-s3gateway| 2229     | `ssh s3gateway` or `ssh -p 2229 rocky@localhost` |
+| DN1     | ozone-datanode1| 2230     | `ssh datanode1` or `ssh -p 2230 rocky@localhost` |
+| DN2     | ozone-datanode2| 2231     | `ssh datanode2` or `ssh -p 2231 rocky@localhost` |
+| DN3     | ozone-datanode3| 2232     | `ssh datanode3` or `ssh -p 2232 rocky@localhost` |
+| HttpFS  | ozone-httpfs   | 2233     | `ssh httpfs` or `ssh -p 2233 rocky@localhost` |
+| Prometheus | ozone-prometheus | 2234 | `ssh prometheus` or `ssh -p 2234 rocky@localhost` |
+| Grafana | ozone-grafana  | 2235     | `ssh grafana` or `ssh -p 2235 rocky@localhost` |
 
 Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
 
@@ -444,9 +482,12 @@ Services communicate using hostnames within the Docker network (e.g., `http://om
 
 **Multi-Container Setup:**
 - `docker-compose.yml` - Docker Compose configuration for multi-container Ozone cluster
-- `setup-ozone-compose.sh` - Multi-container setup script
+- `setup-ozone-compose.sh` - Multi-container setup script (docker exec access)
+- `setup-ozone-docker-ssh.sh` - Multi-container setup script with SSH access
 - `ozone-compose.conf` - Configuration file for Docker Compose setup
-- `tests/test_setup_ozone_compose.sh` - Test script for multi-container setup
+- `ozone-docker-ssh.conf` - Configuration file for SSH-accessible Docker setup
+- `tests/test_setup_ozone_compose.sh` - Test script for docker exec setup
+- `tests/test_setup_ozone_docker_ssh.sh` - Test script for SSH-accessible setup
 
 **Single Container Setup:**
 - `Dockerfile.rocky9` - Docker configuration for Rocky9 image

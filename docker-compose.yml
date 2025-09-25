@@ -10,6 +10,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-om1
     hostname: om1
+    ports:
+      - "2222:22"    # SSH
     volumes:
       - om1-data:/var/lib/hadoop-ozone/om
     networks:
@@ -25,6 +27,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-om2
     hostname: om2
+    ports:
+      - "2223:22"    # SSH
     volumes:
       - om2-data:/var/lib/hadoop-ozone/om
     networks:
@@ -40,6 +44,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-om3
     hostname: om3
+    ports:
+      - "2224:22"    # SSH
     volumes:
       - om3-data:/var/lib/hadoop-ozone/om
     networks:
@@ -56,6 +62,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-scm1
     hostname: scm1
+    ports:
+      - "2225:22"    # SSH
     volumes:
       - scm1-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -71,6 +79,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-scm2
     hostname: scm2
+    ports:
+      - "2226:22"    # SSH
     volumes:
       - scm2-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -86,6 +96,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-scm3
     hostname: scm3
+    ports:
+      - "2227:22"    # SSH
     volumes:
       - scm3-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -102,6 +114,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-recon
     hostname: recon
+    ports:
+      - "2228:22"    # SSH
     volumes:
       - recon-data:/var/lib/hadoop-ozone/recon
     networks:
@@ -118,6 +132,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-s3gateway
     hostname: s3gateway
+    ports:
+      - "2229:22"    # SSH
     volumes:
       - s3gateway-data:/var/lib/hadoop-ozone/s3g
     networks:
@@ -134,6 +150,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-datanode1
     hostname: datanode1
+    ports:
+      - "2230:22"    # SSH
     volumes:
       - datanode1-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -149,6 +167,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-datanode2
     hostname: datanode2
+    ports:
+      - "2231:22"    # SSH
     volumes:
       - datanode2-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -164,6 +184,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-datanode3
     hostname: datanode3
+    ports:
+      - "2232:22"    # SSH
     volumes:
       - datanode3-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -180,6 +202,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-httpfs
     hostname: httpfs
+    ports:
+      - "2233:22"    # SSH
     volumes:
       - httpfs-data:/var/lib/hadoop-ozone/httpfs
     networks:
@@ -196,6 +220,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-prometheus
     hostname: prometheus
+    ports:
+      - "2234:22"    # SSH
     volumes:
       - prometheus-data:/var/lib/prometheus
     networks:
@@ -211,6 +237,8 @@ services:
     image: rocky9-ssh
     container_name: ozone-grafana
     hostname: grafana
+    ports:
+      - "2235:22"    # SSH
     volumes:
       - grafana-data:/var/lib/grafana
     networks:

@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Test script for setup-ozone-compose.sh command options
+# Test script for setup-ozone-docker-ssh.sh command options
 # Tests that each command option works as expected
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-SETUP_SCRIPT="$PROJECT_DIR/setup-ozone-compose.sh"
+SETUP_SCRIPT="$PROJECT_DIR/setup-ozone-docker-ssh.sh"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+CONFIG_FILE="$PROJECT_DIR/ozone-docker-ssh.conf"
 
 # Colors for output
 RED='\033[0;31m'
@@ -71,14 +72,25 @@ test_compose_file() {
         0
 }
 
-# Test 2: Invalid command option should show usage
+# Test 2: Configuration file validation
+test_config_file() {
+    run_test "Docker SSH config file exists" \
+        "[ -f '$CONFIG_FILE' ]" \
+        0
+
+    run_test "Config file contains all expected containers" \
+        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs,prometheus,grafana'" \
+        0
+}
+
+# Test 3: Invalid command option should show usage
 test_invalid_option() {
     run_test "Invalid option shows usage" \
         "$SETUP_SCRIPT invalid_option 2>&1 | grep -q 'Usage:'" \
         0
 }
 
-# Test 3: Valid command options are recognized
+# Test 4: Valid command options are recognized
 test_valid_options() {
     # Test stop command (should fail gracefully without running containers)
     run_test "Stop command is recognized" \
@@ -92,7 +104,7 @@ test_valid_options() {
 
     # Test info command
     run_test "Info command is recognized" \
-        "$SETUP_SCRIPT info 2>&1 | grep -q 'Container Details:' || true" \
+        "$SETUP_SCRIPT info 2>&1 | grep -q 'Container SSH Access:' || true" \
         0
 
     # Test status command
@@ -102,11 +114,11 @@ test_valid_options() {
 
     # Test connect command with missing container
     run_test "Connect command requires container name" \
-        "$SETUP_SCRIPT connect 2>&1 | tail -1 | grep -q 'Available containers:'" \
+        "$SETUP_SCRIPT connect 2>&1 | tail -3 | grep -q 'Available containers:'" \
         0
 }
 
-# Test 4: Script structure validation
+# Test 5: Script structure validation
 test_script_structure() {
     run_test "Script has main function" \
         "grep -q '^main()' $SETUP_SCRIPT" \
@@ -124,12 +136,12 @@ test_script_structure() {
         "grep -q 'generate_ssh_key' $SETUP_SCRIPT" \
         0
 
-    run_test "Script includes multi-container SSH setup" \
-        "grep -q 'setup_ssh_access' $SETUP_SCRIPT" \
+    run_test "Script includes SSH config setup" \
+        "grep -q 'setup_ssh_config' $SETUP_SCRIPT" \
         0
 }
 
-# Test 5: Docker Compose file structure validation
+# Test 6: Docker Compose file structure validation
 test_compose_structure() {
     run_test "Compose file has OM services (3)" \
         "grep -c '^  om[123]:' $COMPOSE_FILE | grep -q '^3$'" \
@@ -168,8 +180,8 @@ test_compose_structure() {
         0
 }
 
-# Test 6: Container configuration validation
-test_container_config() {
+# Test 7: SSH port mapping validation
+test_ssh_port_mappings() {
     run_test "OM services have SSH port mappings" \
         "grep -A10 '^  om[123]:' $COMPOSE_FILE | grep '[0-9]\+:22' | wc -l | grep -q '^3$'" \
         0
@@ -178,19 +190,19 @@ test_container_config() {
         "grep -A10 '^  scm[123]:' $COMPOSE_FILE | grep '[0-9]\+:22' | wc -l | grep -q '^3$'" \
         0
 
-    run_test "DataNode services have SSH port mappings" \
-        "grep -A10 '^  datanode[123]:' $COMPOSE_FILE | grep '[0-9]\+:22' | wc -l | grep -q '^3$'" \
+    run_test "All services have SSH port mappings" \
+        "grep -E '[0-9]+:22' $COMPOSE_FILE | wc -l | grep -q '^14$'" \
         0
 
-    run_test "All services have SSH ports for remote access" \
-        "grep -E '[0-9]+:22' $COMPOSE_FILE | wc -l | grep -q '^14$'" \
+    run_test "SSH ports are unique" \
+        "grep -E '[0-9]+:22' $COMPOSE_FILE | grep -o '[0-9]\+:22' | sort -u | wc -l | grep -q '^14$'" \
         0
 }
 
 # Main test execution
 main() {
-    echo "Running tests for setup-ozone-compose.sh and docker-compose.yml"
-    echo "================================================================="
+    echo "Running tests for setup-ozone-docker-ssh.sh and docker-compose.yml"
+    echo "===================================================================="
 
     # Check if the script exists
     if [ ! -f "$SETUP_SCRIPT" ]; then
@@ -207,9 +219,10 @@ main() {
     # Run tests (disable set -e to handle individual test failures)
     set +e
     test_compose_file || true
+    test_config_file || true
     test_script_structure || true
     test_compose_structure || true
-    test_container_config || true
+    test_ssh_port_mappings || true
     test_invalid_option || true
     test_valid_options || true
     set -e

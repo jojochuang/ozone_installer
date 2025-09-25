@@ -62,8 +62,20 @@ fi
 
 echo ""
 
+# Run Docker SSH setup tests
+echo "3. Testing Docker Compose SSH setup"
+echo "===================================="
+if run_test_script "$SCRIPT_DIR/test_setup_ozone_docker_ssh.sh" "setup-ozone-docker-ssh.sh and SSH configuration"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+((TOTAL_TESTS++))
+
+echo ""
+
 # Run unit tests for functions
-echo "3. Testing shell script functions"
+echo "4. Testing shell script functions"
 echo "=================================="
 if run_test_script "$SCRIPT_DIR/test_script_functions.sh" "shell script function tests"; then
     ((TOTAL_PASSED++))

@@ -159,9 +159,31 @@ setup_ssh_config() {
     # Container list (space-separated string for iteration)
     container_list="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana"
     
+    # Create or update SSH config file with proper permissions
+    if [[ ! -f "$SSH_CONFIG_FILE" ]]; then
+        touch "$SSH_CONFIG_FILE"
+        chmod 600 "$SSH_CONFIG_FILE"
+    fi
+    
+    # Ensure SSH config file is writable
+    if [[ ! -w "$SSH_CONFIG_FILE" ]]; then
+        chmod 600 "$SSH_CONFIG_FILE"
+        if [[ ! -w "$SSH_CONFIG_FILE" ]]; then
+            echo "Error: Cannot write to SSH config file $SSH_CONFIG_FILE"
+            echo "Please check file permissions or run with appropriate privileges"
+            return 1
+        fi
+    fi
+    
     # Remove existing ozone container entries from SSH config
     if [[ -f "$SSH_CONFIG_FILE" ]]; then
-        sed -i.tmp '/# Ozone Docker Containers/,/# End Ozone Docker Containers/d' "$SSH_CONFIG_FILE"
+        # Use a temporary file to avoid permission issues with sed -i
+        temp_config=$(mktemp)
+        if grep -q "# Ozone Docker Containers" "$SSH_CONFIG_FILE"; then
+            sed '/# Ozone Docker Containers/,/# End Ozone Docker Containers/d' "$SSH_CONFIG_FILE" > "$temp_config"
+            mv "$temp_config" "$SSH_CONFIG_FILE"
+        fi
+        rm -f "$temp_config" 2>/dev/null
     fi
     
     # Add SSH config entries for containers
@@ -183,6 +205,9 @@ setup_ssh_config() {
         done
         echo "# End Ozone Docker Containers"
     } >> "$SSH_CONFIG_FILE"
+    
+    # Ensure proper permissions on SSH config file
+    chmod 600 "$SSH_CONFIG_FILE"
     
     echo "SSH configuration updated"
     echo "You can now SSH to containers using: ssh <container_name>"

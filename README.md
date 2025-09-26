@@ -51,8 +51,8 @@ OM_HOSTS="node1.example.com,node2.example.com,node3.example.com"   # Ozone Manag
 SCM_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # Storage Container Manager HA
 DATANODE_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # DataNodes on all hosts
 RECON_HOSTS="node1.example.com"                # Recon service (single instance)
-S3GATEWAY_HOSTS="node1.example.com"            # S3 Gateway service
-HTTPFS_HOSTS="node1.example.com"               # HttpFS service
+S3GATEWAY_HOSTS="node2.example.com"            # S3 Gateway service
+HTTPFS_HOSTS="node3.example.com"               # HttpFS service
 
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"

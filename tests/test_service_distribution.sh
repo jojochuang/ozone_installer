@@ -91,7 +91,7 @@ test_service_distribution() {
         0
 
     run_test "start_ozone_services.sh loads default config service distribution" \
-        "cd '$PROJECT_DIR' && CONFIG_FILE='$CONFIG_FILE_DEFAULT' bash -c 'source start_ozone_services.sh; load_config; [[ \"\$OM_HOSTS\" == \"localhost\" ]]'" \
+        "cd '$PROJECT_DIR' && CONFIG_FILE='$CONFIG_FILE_DEFAULT' bash -c 'source start_ozone_services.sh; load_config; [[ \"\$OM_HOSTS\" == \"node1.example.com,node2.example.com,node3.example.com\" ]]'" \
         0
 
     run_test "validate_service_hosts function shows distributed services" \

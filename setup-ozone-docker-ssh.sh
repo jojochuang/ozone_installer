@@ -135,23 +135,29 @@ setup_ssh_config() {
     # Prepare SSH config directory
     mkdir -p "$HOME/.ssh"
     
-    # Container hostname to port mapping
-    declare -A port_map=(
-        ["om1"]="2222"
-        ["om2"]="2223"
-        ["om3"]="2224"
-        ["scm1"]="2225"
-        ["scm2"]="2226"
-        ["scm3"]="2227"
-        ["recon"]="2228"
-        ["s3gateway"]="2229"
-        ["datanode1"]="2230"
-        ["datanode2"]="2231"
-        ["datanode3"]="2232"
-        ["httpfs"]="2233"
-        ["prometheus"]="2234"
-        ["grafana"]="2235"
-    )
+    # Function to get port for container name (bash 3.x compatible)
+    get_container_port() {
+        case "$1" in
+            "om1") echo "2222" ;;
+            "om2") echo "2223" ;;
+            "om3") echo "2224" ;;
+            "scm1") echo "2225" ;;
+            "scm2") echo "2226" ;;
+            "scm3") echo "2227" ;;
+            "recon") echo "2228" ;;
+            "s3gateway") echo "2229" ;;
+            "datanode1") echo "2230" ;;
+            "datanode2") echo "2231" ;;
+            "datanode3") echo "2232" ;;
+            "httpfs") echo "2233" ;;
+            "prometheus") echo "2234" ;;
+            "grafana") echo "2235" ;;
+            *) echo "" ;;
+        esac
+    }
+    
+    # Container list (space-separated string for iteration)
+    container_list="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana"
     
     # Remove existing ozone container entries from SSH config
     if [[ -f "$SSH_CONFIG_FILE" ]]; then
@@ -162,16 +168,18 @@ setup_ssh_config() {
     {
         echo ""
         echo "# Ozone Docker Containers"
-        for container in "${!port_map[@]}"; do
-            port="${port_map[$container]}"
-            echo "Host $container"
-            echo "    HostName localhost"
-            echo "    Port $port"
-            echo "    User rocky"
-            echo "    IdentityFile $(pwd)/$SSH_KEY_NAME"
-            echo "    StrictHostKeyChecking no"
-            echo "    UserKnownHostsFile /dev/null"
-            echo ""
+        for container in $container_list; do
+            port=$(get_container_port "$container")
+            if [[ -n "$port" ]]; then
+                echo "Host $container"
+                echo "    HostName localhost"
+                echo "    Port $port"
+                echo "    User rocky"
+                echo "    IdentityFile $(pwd)/$SSH_KEY_NAME"
+                echo "    StrictHostKeyChecking no"
+                echo "    UserKnownHostsFile /dev/null"
+                echo ""
+            fi
         done
         echo "# End Ozone Docker Containers"
     } >> "$SSH_CONFIG_FILE"
@@ -257,11 +265,20 @@ cleanup_ssh_config() {
 # Function to connect to a specific container
 connect_to_container() {
     local container_name="$1"
-    local valid_containers=("om1" "om2" "om3" "scm1" "scm2" "scm3" "recon" "s3gateway" "datanode1" "datanode2" "datanode3" "httpfs" "prometheus" "grafana")
+    local valid_containers="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana"
     
-    if [[ ! " ${valid_containers[@]} " =~ " ${container_name} " ]]; then
+    # Check if container name is valid
+    local found=false
+    for container in $valid_containers; do
+        if [[ "$container" == "$container_name" ]]; then
+            found=true
+            break
+        fi
+    done
+    
+    if [[ "$found" != "true" ]]; then
         echo "Error: Unknown container '$container_name'"
-        echo "Available containers: ${valid_containers[*]}"
+        echo "Available containers: $valid_containers"
         exit 1
     fi
 

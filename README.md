@@ -45,6 +45,15 @@ SSH_USER="rocky"
 SSH_PRIVATE_KEY_FILE="~/.ssh/ozone.private"
 SSH_PORT="2222"
 
+# Service Distribution Configuration (NEW)
+# Specify which hosts run which services (comma-separated)
+OM_HOSTS="node1.example.com,node2.example.com,node3.example.com"   # Ozone Manager HA
+SCM_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # Storage Container Manager HA
+DATANODE_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # DataNodes on all hosts
+RECON_HOSTS="node1.example.com"                # Recon service (single instance)
+S3GATEWAY_HOSTS="node1.example.com"            # S3 Gateway service
+HTTPFS_HOSTS="node1.example.com"               # HttpFS service
+
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
@@ -63,6 +72,19 @@ GRAFANA_PORT="3000"
 MAX_CONCURRENT_TRANSFERS=10
 ```
 
+### Service Distribution
+
+The installer now supports **distributed service deployment** across multiple hosts. You can specify exactly which hosts should run which services:
+
+- **OM_HOSTS**: Ozone Manager instances (supports HA with multiple hosts)
+- **SCM_HOSTS**: Storage Container Manager instances (supports HA with multiple hosts)  
+- **DATANODE_HOSTS**: DataNode instances (typically all hosts)
+- **RECON_HOSTS**: Recon service instances (usually single host)
+- **S3GATEWAY_HOSTS**: S3 Gateway service instances
+- **HTTPFS_HOSTS**: HttpFS service instances
+
+**Default behavior**: If service-specific host variables are not specified, services default to the first host in CLUSTER_HOSTS (maintaining backward compatibility).
+
 ## Usage
 
 ### 1. Run the main installer:
@@ -78,6 +100,39 @@ This will:
 - Validate filesystem requirements
 - Install selected JDK version
 - Install and configure time synchronization
+- Download and install Ozone on all hosts
+- Generate and distribute Ozone configuration files
+
+### 2. Start Ozone services (with distributed deployment):
+```bash
+./start_ozone_services.sh
+```
+
+This will:
+- **Distribute services across specified hosts** based on configuration
+- Start SCM on configured SCM_HOSTS
+- Start OM on configured OM_HOSTS
+- Start DataNodes on configured DATANODE_HOSTS
+- Start additional services (Recon, S3Gateway, HttpFS) on their respective hosts
+- Wait for cluster initialization and safe mode exit
+- Display service URLs for all deployed services
+
+Example output with distributed services:
+```
+Service URLs:
+  OM Web UIs:
+    http://node1.example.com:9874
+    http://node2.example.com:9874
+    http://node3.example.com:9874
+  SCM Web UIs:
+    http://node1.example.com:9876
+    http://node2.example.com:9876
+    http://node3.example.com:9876
+  DataNode Web UIs:
+    http://node1.example.com:9882
+    http://node2.example.com:9882
+    http://node3.example.com:9882
+```
 - Download and install Apache Ozone binary
 - Install Prometheus and Grafana (if enabled in configuration)
 

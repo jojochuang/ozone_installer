@@ -86,6 +86,18 @@ fi
 
 echo ""
 
+# Run service distribution tests
+echo "5. Testing service distribution configuration"
+echo "=============================================="
+if run_test_script "$SCRIPT_DIR/test_service_distribution.sh" "service distribution configuration"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+((TOTAL_TESTS++))
+
+echo ""
+
 # Summary
 echo "Overall Test Summary"
 echo "===================="

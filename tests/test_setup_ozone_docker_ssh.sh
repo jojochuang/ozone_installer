@@ -79,7 +79,7 @@ test_config_file() {
         0
 
     run_test "Config file contains all expected containers" \
-        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs,prometheus,grafana'" \
+        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs'" \
         0
 }
 

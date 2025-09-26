@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SETUP_SCRIPT="$PROJECT_DIR/setup-ozone-docker-ssh.sh"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
-CONFIG_FILE="$PROJECT_DIR/ozone-docker-ssh.conf"
+CONFIG_FILE="$PROJECT_DIR/multi-host.conf"
 
 # Colors for output
 RED='\033[0;31m'
@@ -79,7 +79,7 @@ test_config_file() {
         0
 
     run_test "Config file contains all expected containers" \
-        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs'" \
+        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs,prometheus,grafana'" \
         0
 }
 

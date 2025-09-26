@@ -6,7 +6,7 @@
 set -e
 
 # Configuration file path
-CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/ozone_installer.conf}"
+CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
 # Colors for output
 RED='\033[0;31m'

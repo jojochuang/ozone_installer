@@ -50,20 +50,8 @@ fi
 
 echo ""
 
-# Run Docker Compose setup tests
-echo "2. Testing Docker Compose setup"
-echo "================================"
-if run_test_script "$SCRIPT_DIR/test_setup_ozone_compose.sh" "setup-ozone-compose.sh and docker-compose.yml"; then
-    ((TOTAL_PASSED++))
-else
-    ((TOTAL_FAILED++))
-fi
-((TOTAL_TESTS++))
-
-echo ""
-
 # Run Docker SSH setup tests
-echo "3. Testing Docker Compose SSH setup"
+echo "2. Testing Docker Compose SSH setup"
 echo "===================================="
 if run_test_script "$SCRIPT_DIR/test_setup_ozone_docker_ssh.sh" "setup-ozone-docker-ssh.sh and SSH configuration"; then
     ((TOTAL_PASSED++))
@@ -75,7 +63,7 @@ fi
 echo ""
 
 # Run unit tests for functions
-echo "4. Testing shell script functions"
+echo "3. Testing shell script functions"
 echo "=================================="
 if run_test_script "$SCRIPT_DIR/test_script_functions.sh" "shell script function tests"; then
     ((TOTAL_PASSED++))
@@ -87,7 +75,7 @@ fi
 echo ""
 
 # Run service distribution tests
-echo "5. Testing service distribution configuration"
+echo "4. Testing service distribution configuration"
 echo "=============================================="
 if run_test_script "$SCRIPT_DIR/test_service_distribution.sh" "service distribution configuration"; then
     ((TOTAL_PASSED++))

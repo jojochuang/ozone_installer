@@ -338,22 +338,24 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 ## Ozone Multi-Container Docker Compose Setup
 
-There are now **two approaches** for running Ozone in Docker containers:
+There are now **two approaches** for running Ozone:
 
-### 1. Docker Exec Access (Internal Networking)
-Use `setup-ozone-compose.sh` for containerized access via `docker exec`:
+### 1. Single Host Deployment
+Use `setup-rocky9-ssh.sh` for single container named "ozone":
 
 ```bash
-# Start cluster
-./setup-ozone-compose.sh start
+# Start single host container
+./setup-rocky9-ssh.sh start
 
-# Connect to containers
-./setup-ozone-compose.sh connect om1
-docker exec -it ozone-om1 bash
+# SSH to container
+ssh ozone
+
+# Install and configure Ozone (uses single-host.conf)
+CONFIG_FILE=single-host.conf ./ozone_installer.sh
 ```
 
-### 2. SSH Access (Treat Containers as Remote Hosts)
-Use `setup-ozone-docker-ssh.sh` to enable SSH access to containers, allowing you to use `ozone_installer.sh`:
+### 2. Multi-Host Deployment  
+Use `setup-ozone-docker-ssh.sh` for multi-container cluster with SSH access:
 
 ```bash
 # Start cluster with SSH access
@@ -364,11 +366,13 @@ ssh om1
 ssh scm1
 ssh datanode1
 
-# Use ozone_installer.sh with containers
-CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh
+# Install and configure Ozone (uses multi-host.conf by default)
+./ozone_installer.sh
+./generate_configurations.sh
+./start_ozone_services.sh
 ```
 
-Both approaches create the same 14-container setup:
+The multi-host approach creates a 14-container setup:
 - **3 Ozone Manager (OM) containers** for high availability
 - **3 Storage Container Manager (SCM) containers** for distributed storage management
 - **3 DataNode containers** for distributed data storage

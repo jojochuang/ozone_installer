@@ -1,18 +1,31 @@
 #!/bin/bash
 
-# Docker Compose Ozone Setup with SSH Access
+# Docker Compose Multi-Host Ozone Setup with SSH Access
 # This script sets up Docker containers that can be accessed via SSH as if they were remote hosts
 
 set -e
 
-SSH_KEY_NAME="rocky9_key"
+# Load configuration from multi-host.conf
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/multi-host.conf}"
+
+# Source configuration
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    echo "Error: Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+SSH_KEY_NAME="${SSH_PRIVATE_KEY_FILE:-rocky9_key}"
 COMPOSE_PROJECT_NAME="ozone-cluster"
 SSH_CONFIG_FILE="$HOME/.ssh/config"
 SSH_CONFIG_BACKUP="$HOME/.ssh/config.backup.$(date +%s)"
 
-echo "=== Ozone Docker Compose Setup with SSH Access ==="
+echo "=== Ozone Docker Compose Multi-Host Setup with SSH Access ==="
 echo "SSH key: $SSH_KEY_NAME"
 echo "Docker Compose project: $COMPOSE_PROJECT_NAME"
+echo "Configuration: $CONFIG_FILE"
 echo
 
 # Check if Docker and Docker Compose are available

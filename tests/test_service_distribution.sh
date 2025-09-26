@@ -8,8 +8,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 START_SCRIPT="$PROJECT_DIR/start_ozone_services.sh"
-CONFIG_FILE_DOCKER="$PROJECT_DIR/ozone-docker-ssh.conf"
-CONFIG_FILE_DEFAULT="$PROJECT_DIR/ozone_installer.conf"
+CONFIG_FILE_DOCKER="$PROJECT_DIR/multi-host.conf"
+CONFIG_FILE_DEFAULT="$PROJECT_DIR/single-host.conf"
 
 # Colors for output
 RED='\033[0;31m'
@@ -91,7 +91,7 @@ test_service_distribution() {
         0
 
     run_test "start_ozone_services.sh loads default config service distribution" \
-        "cd '$PROJECT_DIR' && CONFIG_FILE='$CONFIG_FILE_DEFAULT' bash -c 'source start_ozone_services.sh; load_config; [[ \"\$OM_HOSTS\" == \"node1.example.com,node2.example.com,node3.example.com\" ]]'" \
+        "cd '$PROJECT_DIR' && CONFIG_FILE='$CONFIG_FILE_DEFAULT' bash -c 'source start_ozone_services.sh; load_config; [[ \"\$OM_HOSTS\" == \"ozone\" ]]'" \
         0
 
     run_test "validate_service_hosts function shows distributed services" \
@@ -114,7 +114,7 @@ test_script_functions() {
         0
 
     run_test "start_ozone_services.sh respects CONFIG_FILE environment variable" \
-        "grep -q 'CONFIG_FILE=.*CONFIG_FILE.*ozone_installer.conf' '$START_SCRIPT'" \
+        "grep -q 'CONFIG_FILE=.*CONFIG_FILE.*multi-host.conf' '$START_SCRIPT'" \
         0
 }
 

@@ -1,19 +1,32 @@
 #!/bin/bash
 
-# Rocky9 Docker Container Setup Script for Password-less SSH Access
-# This script creates a Rocky9 container with SSH daemon configured for key-based authentication
+# Rocky9 Single Host Docker Container Setup Script for Password-less SSH Access
+# This script creates a single Rocky9 container named "ozone" with SSH daemon configured for key-based authentication
 
 set -e
 
-CONTAINER_NAME="rocky9-ssh"
-SSH_PORT="2222"
-IMAGE_NAME="rocky9-ssh"
-SSH_KEY_NAME="rocky9_key"
+# Load configuration from single-host.conf
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/single-host.conf}"
 
-echo "=== Rocky9 Docker Container SSH Setup ==="
+# Source configuration
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    echo "Error: Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+CONTAINER_NAME="ozone"
+SSH_PORT="${SSH_PORT:-2222}"
+IMAGE_NAME="ozone-single"
+SSH_KEY_NAME="${SSH_PRIVATE_KEY_FILE:-rocky9_key}"
+
+echo "=== Ozone Single Host Docker Container SSH Setup ==="
 echo "Container name: $CONTAINER_NAME"
 echo "SSH port: $SSH_PORT"
 echo "SSH key: $SSH_KEY_NAME"
+echo "Configuration: $CONFIG_FILE"
 echo
 
 # Check if Docker is available

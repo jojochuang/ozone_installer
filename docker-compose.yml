@@ -1,0 +1,271 @@
+# Ozone Multi-Container Setup
+# 3 OM containers, 3 SCM containers, 1 Recon container, 1 S3 Gateway container, 3 DataNode containers, 1 HttpFS container
+
+services:
+  # Ozone Manager Containers (3)
+  om1:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-om1
+    hostname: om1
+    ports:
+      - "2222:22"    # SSH
+    volumes:
+      - om1-data:/var/lib/hadoop-ozone/om
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=om
+      - OZONE_NODE_ID=om1
+
+  om2:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-om2
+    hostname: om2
+    ports:
+      - "2223:22"    # SSH
+    volumes:
+      - om2-data:/var/lib/hadoop-ozone/om
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=om
+      - OZONE_NODE_ID=om2
+
+  om3:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-om3
+    hostname: om3
+    ports:
+      - "2224:22"    # SSH
+    volumes:
+      - om3-data:/var/lib/hadoop-ozone/om
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=om
+      - OZONE_NODE_ID=om3
+
+  # Storage Container Manager Containers (3)
+  scm1:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-scm1
+    hostname: scm1
+    ports:
+      - "2225:22"    # SSH
+    volumes:
+      - scm1-data:/var/lib/hadoop-ozone/scm
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=scm
+      - OZONE_NODE_ID=scm1
+
+  scm2:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-scm2
+    hostname: scm2
+    ports:
+      - "2226:22"    # SSH
+    volumes:
+      - scm2-data:/var/lib/hadoop-ozone/scm
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=scm
+      - OZONE_NODE_ID=scm2
+
+  scm3:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-scm3
+    hostname: scm3
+    ports:
+      - "2227:22"    # SSH
+    volumes:
+      - scm3-data:/var/lib/hadoop-ozone/scm
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=scm
+      - OZONE_NODE_ID=scm3
+
+  # Recon Container (1)
+  recon:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-recon
+    hostname: recon
+    ports:
+      - "2228:22"    # SSH
+    volumes:
+      - recon-data:/var/lib/hadoop-ozone/recon
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=recon
+      - OZONE_NODE_ID=recon
+
+  # S3 Gateway Container (1)
+  s3gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-s3gateway
+    hostname: s3gateway
+    ports:
+      - "2229:22"    # SSH
+    volumes:
+      - s3gateway-data:/var/lib/hadoop-ozone/s3g
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=s3gateway
+      - OZONE_NODE_ID=s3gateway
+
+  # DataNode Containers (3)
+  datanode1:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-datanode1
+    hostname: datanode1
+    ports:
+      - "2230:22"    # SSH
+    volumes:
+      - datanode1-data:/var/lib/hadoop-ozone/datanode
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=datanode
+      - OZONE_NODE_ID=datanode1
+
+  datanode2:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-datanode2
+    hostname: datanode2
+    ports:
+      - "2231:22"    # SSH
+    volumes:
+      - datanode2-data:/var/lib/hadoop-ozone/datanode
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=datanode
+      - OZONE_NODE_ID=datanode2
+
+  datanode3:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-datanode3
+    hostname: datanode3
+    ports:
+      - "2232:22"    # SSH
+    volumes:
+      - datanode3-data:/var/lib/hadoop-ozone/datanode
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=datanode
+      - OZONE_NODE_ID=datanode3
+
+  # HttpFS Container (1)
+  httpfs:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-httpfs
+    hostname: httpfs
+    ports:
+      - "2233:22"    # SSH
+    volumes:
+      - httpfs-data:/var/lib/hadoop-ozone/httpfs
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=httpfs
+      - OZONE_NODE_ID=httpfs
+
+  # Observability Services
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-prometheus
+    hostname: prometheus
+    ports:
+      - "2234:22"    # SSH
+    volumes:
+      - prometheus-data:/var/lib/prometheus
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=prometheus
+      - OZONE_NODE_ID=prometheus
+
+  grafana:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-grafana
+    hostname: grafana
+    ports:
+      - "2235:22"    # SSH
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=grafana
+      - OZONE_NODE_ID=grafana
+
+volumes:
+  om1-data:
+  om2-data:
+  om3-data:
+  scm1-data:
+  scm2-data:
+  scm3-data:
+  recon-data:
+  s3gateway-data:
+  datanode1-data:
+  datanode2-data:
+  datanode3-data:
+  httpfs-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  ozone-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -45,6 +45,15 @@ SSH_USER="rocky"
 SSH_PRIVATE_KEY_FILE="~/.ssh/ozone.private"
 SSH_PORT="2222"
 
+# Service Distribution Configuration (NEW)
+# Specify which hosts run which services (comma-separated)
+OM_HOSTS="node1.example.com,node2.example.com,node3.example.com"   # Ozone Manager HA
+SCM_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # Storage Container Manager HA
+DATANODE_HOSTS="node1.example.com,node2.example.com,node3.example.com"  # DataNodes on all hosts
+RECON_HOSTS="node1.example.com"                # Recon service (single instance)
+S3GATEWAY_HOSTS="node2.example.com"            # S3 Gateway service
+HTTPFS_HOSTS="node3.example.com"               # HttpFS service
+
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
@@ -63,6 +72,19 @@ GRAFANA_PORT="3000"
 MAX_CONCURRENT_TRANSFERS=10
 ```
 
+### Service Distribution
+
+The installer now supports **distributed service deployment** across multiple hosts. You can specify exactly which hosts should run which services:
+
+- **OM_HOSTS**: Ozone Manager instances (supports HA with multiple hosts)
+- **SCM_HOSTS**: Storage Container Manager instances (supports HA with multiple hosts)  
+- **DATANODE_HOSTS**: DataNode instances (typically all hosts)
+- **RECON_HOSTS**: Recon service instances (usually single host)
+- **S3GATEWAY_HOSTS**: S3 Gateway service instances
+- **HTTPFS_HOSTS**: HttpFS service instances
+
+**Default behavior**: If service-specific host variables are not specified, services default to the first host in CLUSTER_HOSTS (maintaining backward compatibility).
+
 ## Usage
 
 ### 1. Run the main installer:
@@ -78,6 +100,39 @@ This will:
 - Validate filesystem requirements
 - Install selected JDK version
 - Install and configure time synchronization
+- Download and install Ozone on all hosts
+- Generate and distribute Ozone configuration files
+
+### 2. Start Ozone services (with distributed deployment):
+```bash
+./start_ozone_services.sh
+```
+
+This will:
+- **Distribute services across specified hosts** based on configuration
+- Start SCM on configured SCM_HOSTS
+- Start OM on configured OM_HOSTS
+- Start DataNodes on configured DATANODE_HOSTS
+- Start additional services (Recon, S3Gateway, HttpFS) on their respective hosts
+- Wait for cluster initialization and safe mode exit
+- Display service URLs for all deployed services
+
+Example output with distributed services:
+```
+Service URLs:
+  OM Web UIs:
+    http://node1.example.com:9874
+    http://node2.example.com:9874
+    http://node3.example.com:9874
+  SCM Web UIs:
+    http://node1.example.com:9876
+    http://node2.example.com:9876
+    http://node3.example.com:9876
+  DataNode Web UIs:
+    http://node1.example.com:9882
+    http://node2.example.com:9882
+    http://node3.example.com:9882
+```
 - Download and install Apache Ozone binary
 - Install Prometheus and Grafana (if enabled in configuration)
 
@@ -281,12 +336,136 @@ The workflow includes four jobs:
 
 The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with SSH daemon configured for password-less authentication using SSH keys.
 
+## Ozone Multi-Container Docker Compose Setup
+
+There are now **two approaches** for running Ozone:
+
+### 1. Single Host Deployment
+Use `setup-rocky9-ssh.sh` for single container named "ozone":
+
+```bash
+# Start single host container
+./setup-rocky9-ssh.sh start
+
+# SSH to container
+ssh ozone
+
+# Install and configure Ozone (uses single-host.conf)
+CONFIG_FILE=single-host.conf ./ozone_installer.sh
+```
+
+### 2. Multi-Host Deployment  
+Use `setup-ozone-docker-ssh.sh` for multi-container cluster with SSH access:
+
+```bash
+# Start cluster with SSH access
+./setup-ozone-docker-ssh.sh start
+
+# SSH to containers as if they were remote hosts
+ssh om1
+ssh scm1
+ssh datanode1
+
+# Install and configure Ozone (uses multi-host.conf by default)
+./ozone_installer.sh
+./generate_configurations.sh
+./start_ozone_services.sh
+```
+
+The multi-host approach creates a 14-container setup:
+- **3 Ozone Manager (OM) containers** for high availability
+- **3 Storage Container Manager (SCM) containers** for distributed storage management
+- **3 DataNode containers** for distributed data storage
+- **1 Recon container** for monitoring and reconciliation
+- **1 S3 Gateway container** for S3-compatible API access
+- **1 HttpFS container** for HTTP filesystem access
+- **2 Observability containers** (Prometheus + Grafana) for metrics and dashboards
+
+### Multi-Container Prerequisites
+
+- Docker and Docker Compose installed and running
+- SSH client available (for SSH access approach)
+
+### Multi-Container Quick Start
+
+1. Make the script executable (if not already):
+   ```bash
+   chmod +x setup-ozone-compose.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup-ozone-compose.sh
+   ```
+
+3. Connect to any container:
+   ```bash
+   ./setup-ozone-compose.sh connect om1
+   ```
+   
+   Or use docker exec directly:
+   ```bash
+   docker exec -it ozone-om1 bash
+   ```
+
+4. Check cluster status:
+   ```bash
+   ./setup-ozone-compose.sh status
+   ```
+
+### Multi-Container Script Options
+
+- `./setup-ozone-compose.sh start` - Build and start the Ozone cluster (default)
+- `./setup-ozone-compose.sh stop` - Stop the running cluster
+- `./setup-ozone-compose.sh clean` - Remove all containers and volumes
+- `./setup-ozone-compose.sh status` - Show cluster status
+- `./setup-ozone-compose.sh connect <container>` - Connect to a specific container via SSH
+- `./setup-ozone-compose.sh info` - Show connection information
+
+Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3gateway`, `datanode1`, `datanode2`, `datanode3`, `httpfs`, `prometheus`, `grafana`
+
+### Container Port Mappings
+
+**Docker Exec Access (setup-ozone-compose.sh):**
+All services run on standard ports within the Docker network. Access containers using `docker exec`:
+
+| Service | Container Name | Internal Ports | Access Method |
+|---------|----------------|----------------|---------------|
+| OM1-3   | ozone-om1-3    | 22, 9874       | `docker exec -it ozone-om1 bash` |
+| SCM1-3  | ozone-scm1-3   | 22, 9876       | `docker exec -it ozone-scm1 bash` |
+| DataNodes | ozone-datanode1-3 | 22, 9882    | `docker exec -it ozone-datanode1 bash` |
+| Others  | ozone-*        | 22, service port | `docker exec -it ozone-<service> bash` |
+
+**SSH Access (setup-ozone-docker-ssh.sh):**
+Containers are accessible via SSH on unique host ports:
+
+| Service | Container Name | SSH Port | Access Method |
+|---------|----------------|----------|---------------|
+| OM1     | ozone-om1      | 2222     | `ssh om1` or `ssh -p 2222 rocky@localhost` |
+| OM2     | ozone-om2      | 2223     | `ssh om2` or `ssh -p 2223 rocky@localhost` |
+| OM3     | ozone-om3      | 2224     | `ssh om3` or `ssh -p 2224 rocky@localhost` |
+| SCM1    | ozone-scm1     | 2225     | `ssh scm1` or `ssh -p 2225 rocky@localhost` |
+| SCM2    | ozone-scm2     | 2226     | `ssh scm2` or `ssh -p 2226 rocky@localhost` |
+| SCM3    | ozone-scm3     | 2227     | `ssh scm3` or `ssh -p 2227 rocky@localhost` |
+| Recon   | ozone-recon    | 2228     | `ssh recon` or `ssh -p 2228 rocky@localhost` |
+| S3GW    | ozone-s3gateway| 2229     | `ssh s3gateway` or `ssh -p 2229 rocky@localhost` |
+| DN1     | ozone-datanode1| 2230     | `ssh datanode1` or `ssh -p 2230 rocky@localhost` |
+| DN2     | ozone-datanode2| 2231     | `ssh datanode2` or `ssh -p 2231 rocky@localhost` |
+| DN3     | ozone-datanode3| 2232     | `ssh datanode3` or `ssh -p 2232 rocky@localhost` |
+| HttpFS  | ozone-httpfs   | 2233     | `ssh httpfs` or `ssh -p 2233 rocky@localhost` |
+| Prometheus | ozone-prometheus | 2234 | `ssh prometheus` or `ssh -p 2234 rocky@localhost` |
+| Grafana | ozone-grafana  | 2235     | `ssh grafana` or `ssh -p 2235 rocky@localhost` |
+
+Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
+
+## Single Container Setup (Legacy)
+
 ### Prerequisites
 
 - Docker installed and running
 - SSH client available (usually pre-installed on Linux/macOS)
 
-### Quick Start
+### Single Container Quick Start
 
 1. Make the script executable (if not already):
    ```bash
@@ -305,7 +484,7 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
    **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
 
-### Script Options
+### Single Container Script Options
 
 - `./setup-rocky9-ssh.sh start` - Build and start the container (default)
 - `./setup-rocky9-ssh.sh stop` - Stop the running container
@@ -360,7 +539,17 @@ The `setup-rocky9-ssh.sh` script creates a Rocky Linux 9 Docker container with S
 
 ### Files
 
+**Multi-Container Setup:**
+- `docker-compose.yml` - Docker Compose configuration for multi-container Ozone cluster
+- `setup-ozone-compose.sh` - Multi-container setup script (docker exec access)
+- `setup-ozone-docker-ssh.sh` - Multi-container setup script with SSH access
+- `ozone-compose.conf` - Configuration file for Docker Compose setup
+- `ozone-docker-ssh.conf` - Configuration file for SSH-accessible Docker setup
+- `tests/test_setup_ozone_compose.sh` - Test script for docker exec setup
+- `tests/test_setup_ozone_docker_ssh.sh` - Test script for SSH-accessible setup
+
+**Single Container Setup:**
 - `Dockerfile.rocky9` - Docker configuration for Rocky9 image
-- `setup-rocky9-ssh.sh` - Main setup script
+- `setup-rocky9-ssh.sh` - Single container setup script
 - `rocky9_key` - SSH private key (generated)
 - `rocky9_key.pub` - SSH public key (generated)

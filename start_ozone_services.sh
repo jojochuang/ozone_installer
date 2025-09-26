@@ -6,7 +6,7 @@
 set -e
 
 # Configuration file path
-CONFIG_FILE="$(dirname "$0")/ozone_installer.conf"
+CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -618,6 +618,85 @@ check_service_status() {
     '
 }
 
+# Function to validate service host configurations
+validate_service_hosts() {
+    log "Validating service host configurations..."
+    
+    # Set defaults if service-specific hosts are not specified
+    if [[ -z "$OM_HOSTS" ]]; then
+        OM_HOSTS="${HOSTS[0]}"  # Default to first host
+        log "OM_HOSTS not specified, defaulting to: $OM_HOSTS"
+    fi
+    if [[ -z "$SCM_HOSTS" ]]; then
+        SCM_HOSTS="${HOSTS[0]}"  # Default to first host
+        log "SCM_HOSTS not specified, defaulting to: $SCM_HOSTS"
+    fi
+    if [[ -z "$DATANODE_HOSTS" ]]; then
+        DATANODE_HOSTS="$CLUSTER_HOSTS"  # Default to all hosts
+        log "DATANODE_HOSTS not specified, defaulting to: $DATANODE_HOSTS"
+    fi
+    if [[ -z "$RECON_HOSTS" ]]; then
+        RECON_HOSTS="${HOSTS[0]}"  # Default to first host
+        log "RECON_HOSTS not specified, defaulting to: $RECON_HOSTS"
+    fi
+    if [[ -z "$S3GATEWAY_HOSTS" ]]; then
+        S3GATEWAY_HOSTS="${HOSTS[0]}"  # Default to first host
+        log "S3GATEWAY_HOSTS not specified, defaulting to: $S3GATEWAY_HOSTS"
+    fi
+    if [[ -z "$HTTPFS_HOSTS" ]]; then
+        HTTPFS_HOSTS="${HOSTS[0]}"  # Default to first host
+        log "HTTPFS_HOSTS not specified, defaulting to: $HTTPFS_HOSTS"
+    fi
+    
+    log "Service distribution:"
+    log "  OM hosts: $OM_HOSTS"
+    log "  SCM hosts: $SCM_HOSTS"
+    log "  DataNode hosts: $DATANODE_HOSTS"
+    log "  Recon hosts: $RECON_HOSTS"
+    log "  S3Gateway hosts: $S3GATEWAY_HOSTS"
+    log "  HttpFS hosts: $HTTPFS_HOSTS"
+}
+
+# Function to start services on specified hosts
+start_service_on_hosts() {
+    local service_name="$1"
+    local hosts_list="$2"
+    local start_function="$3"
+    local format_function="$4"
+    
+    if [[ -z "$hosts_list" ]]; then
+        warn "No hosts specified for $service_name, skipping"
+        return
+    fi
+    
+    # Convert comma-separated list to array
+    IFS=',' read -ra SERVICE_HOSTS <<< "$hosts_list"
+    
+    log "Starting $service_name on hosts: $hosts_list"
+    
+    for host in "${SERVICE_HOSTS[@]}"; do
+        host=$(echo "$host" | xargs)
+        log "Starting $service_name on $host..."
+        
+        # Format if format function is provided
+        if [[ -n "$format_function" && "$format_function" != "none" ]]; then
+            log "Formatting $service_name on $host..."
+            "$format_function" "$host"
+        fi
+        
+        # Start the service
+        "$start_function" "$host"
+    done
+}
+main() {
+    log "Starting Ozone Services"
+
+    # Load configuration
+    load_config
+
+    # Convert CLUSTER_HOSTS to array
+    IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
+
 # Main function
 main() {
     log "Starting Ozone Services"
@@ -633,7 +712,8 @@ main() {
         exit 1
     fi
 
-    local primary_host=$(echo "${HOSTS[0]}" | xargs)
+    # Validate and set service host configurations
+    validate_service_hosts
 
     # Check Ozone installation on all hosts
     log "Checking Ozone installation on all hosts..."
@@ -645,38 +725,29 @@ main() {
         fi
     done
 
-    # Format SCM on primary host
-    format_scm "$primary_host"
+    # Start services in order (SCM first, then OM, then others)
+    
+    # Step 1: Start SCM on specified hosts (SCM must start before formatting OM)
+    start_service_on_hosts "SCM" "$SCM_HOSTS" "start_scm" "format_scm"
+    
+    # Wait for SCM to start
+    log "Waiting for SCM to start..."
+    sleep 15
 
-    # Start SCM on primary host (SCM must start before formatting OM)
-    start_scm "$primary_host"
+    # Step 2: Start OM on specified hosts (after SCM is running)
+    start_service_on_hosts "OM" "$OM_HOSTS" "start_om" "format_om"
+    
+    # Wait for OM to start
+    log "Waiting for OM to start..."
+    sleep 15
 
-    # Wait a bit for SCM to start
-    sleep 10
+    # Step 3: Start DataNodes on specified hosts
+    start_service_on_hosts "DataNode" "$DATANODE_HOSTS" "start_datanode" "none"
 
-    # Format OM on primary host (after SCM is running)
-    format_om "$primary_host"
-
-    # Start OM on primary host
-    start_om "$primary_host"
-
-    # Wait a bit for OM to start
-    sleep 10
-
-    # Start DataNodes on all hosts
-    for host in "${HOSTS[@]}"; do
-        host=$(echo "$host" | xargs)
-        start_datanode "$host"
-    done
-
-    # Start Recon on primary host
-    start_recon "$primary_host"
-
-    # Start S3 Gateway on primary host
-    start_s3gateway "$primary_host"
-
-    # Start HttpFS on primary host
-    start_httpfs "$primary_host"
+    # Step 4: Start other services
+    start_service_on_hosts "Recon" "$RECON_HOSTS" "start_recon" "none"
+    start_service_on_hosts "S3Gateway" "$S3GATEWAY_HOSTS" "start_s3gateway" "none"
+    start_service_on_hosts "HttpFS" "$HTTPFS_HOSTS" "start_httpfs" "none"
 
     # Wait for services to fully start
     log "Waiting for services to start up..."
@@ -688,17 +759,64 @@ main() {
         check_service_status "$host"
     done
 
-    # Wait for safe mode exit
-    wait_for_safe_mode_exit "$primary_host"
+    # Wait for safe mode exit (use first OM host)
+    IFS=',' read -ra OM_HOSTS_ARRAY <<< "$OM_HOSTS"
+    local primary_om_host=$(echo "${OM_HOSTS_ARRAY[0]}" | xargs)
+    wait_for_safe_mode_exit "$primary_om_host"
 
     log "Ozone services startup completed!"
     log ""
-    log "Service URLs (on $primary_host):"
-    log "  SCM Web UI: http://$primary_host:9876"
-    log "  OM Web UI: http://$primary_host:9874"
-    log "  Recon Web UI: http://$primary_host:9888"
-    log "  S3 Gateway: http://$primary_host:9878"
-    log "  HttpFS: http://$primary_host:14000"
+    log "Service URLs:"
+    
+    # Show URLs for all service hosts
+    log "  OM Web UIs:"
+    IFS=',' read -ra OM_HOSTS_ARRAY <<< "$OM_HOSTS"
+    for host in "${OM_HOSTS_ARRAY[@]}"; do
+        host=$(echo "$host" | xargs)
+        log "    http://$host:9874"
+    done
+    
+    log "  SCM Web UIs:"
+    IFS=',' read -ra SCM_HOSTS_ARRAY <<< "$SCM_HOSTS"
+    for host in "${SCM_HOSTS_ARRAY[@]}"; do
+        host=$(echo "$host" | xargs)
+        log "    http://$host:9876"
+    done
+    
+    log "  DataNode Web UIs:"
+    IFS=',' read -ra DATANODE_HOSTS_ARRAY <<< "$DATANODE_HOSTS"
+    for host in "${DATANODE_HOSTS_ARRAY[@]}"; do
+        host=$(echo "$host" | xargs)
+        log "    http://$host:9882"
+    done
+    
+    if [[ -n "$RECON_HOSTS" ]]; then
+        log "  Recon Web UIs:"
+        IFS=',' read -ra RECON_HOSTS_ARRAY <<< "$RECON_HOSTS"
+        for host in "${RECON_HOSTS_ARRAY[@]}"; do
+            host=$(echo "$host" | xargs)
+            log "    http://$host:9888"
+        done
+    fi
+    
+    if [[ -n "$S3GATEWAY_HOSTS" ]]; then
+        log "  S3 Gateway APIs:"
+        IFS=',' read -ra S3GATEWAY_HOSTS_ARRAY <<< "$S3GATEWAY_HOSTS"
+        for host in "${S3GATEWAY_HOSTS_ARRAY[@]}"; do
+            host=$(echo "$host" | xargs)
+            log "    http://$host:9878"
+        done
+    fi
+    
+    if [[ -n "$HTTPFS_HOSTS" ]]; then
+        log "  HttpFS APIs:"
+        IFS=',' read -ra HTTPFS_HOSTS_ARRAY <<< "$HTTPFS_HOSTS"
+        for host in "${HTTPFS_HOSTS_ARRAY[@]}"; do
+            host=$(echo "$host" | xargs)
+            log "    http://$host:14000"
+        done
+    fi
+}
     log ""
     log "To check cluster status:"
     log "  ozone admin safemode status"

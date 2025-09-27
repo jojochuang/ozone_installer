@@ -18,8 +18,8 @@ else
 fi
 
 CONTAINER_NAME="ozone"
-SSH_PORT="${SSH_PORT:-2222}"
-IMAGE_NAME="ozone-single"
+SSH_PORT="${SSH_PORT:-2422}"
+IMAGE_NAME="rocky9-ssh"
 SSH_KEY_NAME="${SSH_PRIVATE_KEY_FILE:-rocky9_key}"
 
 echo "=== Ozone Single Host Docker Container SSH Setup ==="
@@ -70,8 +70,17 @@ build_image() {
 # Function to run the container
 run_container() {
     echo "Starting Rocky9 container..."
+    
+    # Connect to the same network as the docker-compose setup
+    # The network name will be prefixed by the compose project name
+    DOCKER_NETWORK="ozone-cluster_ozone-network"
+    
+    # Create network if it doesn't exist (in case single container is started independently)
+    docker network create "$DOCKER_NETWORK" 2>/dev/null || true
+    
     docker run -d \
         --name $CONTAINER_NAME \
+        --network "$DOCKER_NETWORK" \
         -p $SSH_PORT:22 \
         -p 9874:9874 \
         -p 9876:9876 \

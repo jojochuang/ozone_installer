@@ -422,7 +422,7 @@ The multi-host approach creates a 14-container setup:
 - `./setup-ozone-compose.sh connect <container>` - Connect to a specific container via SSH
 - `./setup-ozone-compose.sh info` - Show connection information
 
-Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3gateway`, `datanode1`, `datanode2`, `datanode3`, `httpfs`, `prometheus`, `grafana`
+Available containers: `om1`, `om2`, `om3`, `scm1`, `scm2`, `scm3`, `recon`, `s3gateway`, `datanode1`, `datanode2`, `datanode3`, `httpfs`, `prometheus`, `grafana`, `client`
 
 ### Container Port Mappings
 
@@ -455,8 +455,11 @@ Containers are accessible via SSH on unique host ports:
 | HttpFS  | ozone-httpfs   | 2233     | `ssh httpfs` or `ssh -p 2233 rocky@localhost` |
 | Prometheus | ozone-prometheus | 2234 | `ssh prometheus` or `ssh -p 2234 rocky@localhost` |
 | Grafana | ozone-grafana  | 2235     | `ssh grafana` or `ssh -p 2235 rocky@localhost` |
+| Client  | ozone-client   | 2236     | `ssh client` or `ssh -p 2236 rocky@localhost` |
 
 Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
+
+**Special Client Container:** The `client` container is configured with SSH keys to access all other containers in the cluster. After SSH-ing into the client container (`ssh client`), you can SSH to any other container using their hostnames (e.g., `ssh om1`, `ssh scm1`, `ssh datanode1`) without passwords.
 
 ## Single Container Setup (Legacy)
 

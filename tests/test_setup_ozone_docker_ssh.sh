@@ -79,7 +79,7 @@ test_config_file() {
         0
 
     run_test "Config file contains all expected containers" \
-        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs,prometheus,grafana'" \
+        "source '$CONFIG_FILE' && echo \$CLUSTER_HOSTS | grep -q 'om1,om2,om3,scm1,scm2,scm3,recon,s3gateway,datanode1,datanode2,datanode3,httpfs,prometheus,grafana,client'" \
         0
 }
 
@@ -171,6 +171,10 @@ test_compose_structure() {
         "grep -q '^  prometheus:' $COMPOSE_FILE && grep -q '^  grafana:' $COMPOSE_FILE" \
         0
 
+    run_test "Compose file includes client service" \
+        "grep -q '^  client:' $COMPOSE_FILE" \
+        0
+
     run_test "Compose file has ozone-network" \
         "grep -q 'ozone-network:' $COMPOSE_FILE" \
         0
@@ -191,11 +195,11 @@ test_ssh_port_mappings() {
         0
 
     run_test "All services have SSH port mappings" \
-        "grep -E '[0-9]+:22' $COMPOSE_FILE | wc -l | grep -q '^14$'" \
+        "grep -E '[0-9]+:22' $COMPOSE_FILE | wc -l | grep -q '^15$'" \
         0
 
     run_test "SSH ports are unique" \
-        "grep -E '[0-9]+:22' $COMPOSE_FILE | grep -o '[0-9]\+:22' | sort -u | wc -l | grep -q '^14$'" \
+        "grep -E '[0-9]+:22' $COMPOSE_FILE | grep -o '[0-9]\+:22' | sort -u | wc -l | grep -q '^15$'" \
         0
 }
 

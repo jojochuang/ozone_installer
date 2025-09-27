@@ -259,6 +259,7 @@ services:
       - "2236:22"    # SSH
     volumes:
       - client-data:/home/rocky
+      - .:/opt/ozone-installer
     networks:
       - ozone-network
     environment:

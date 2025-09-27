@@ -459,7 +459,7 @@ Containers are accessible via SSH on unique host ports:
 
 Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
 
-**Special Client Container:** The `client` container is configured with SSH keys to access all other containers in the cluster. After SSH-ing into the client container (`ssh client`), you can SSH to any other container using their hostnames (e.g., `ssh om1`, `ssh scm1`, `ssh datanode1`) without passwords.
+**Special Client Container:** The `client` container is configured with SSH keys to access all other containers in the cluster. After SSH-ing into the client container (`ssh client`), you can SSH to any other container using their hostnames (e.g., `ssh om1`, `ssh scm1`, `ssh datanode1`) without passwords. The current directory is mounted at `/opt/ozone-installer` inside the client container, providing access to all scripts and configuration files.
 
 ## Single Container Setup (Legacy)
 

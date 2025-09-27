@@ -101,6 +101,7 @@ setup_ssh_access() {
         "ozone-httpfs"
         "ozone-prometheus"
         "ozone-grafana"
+        "ozone-client"
     )
 
     for container_name in "${containers[@]}"; do
@@ -117,6 +118,122 @@ setup_ssh_access() {
             chmod 600 /home/rocky/.ssh/authorized_keys
             rm /tmp/authorized_keys
         "
+        
+        # For the client container, also copy the private key so it can SSH to other containers
+        if [[ "$container_name" == "ozone-client" ]]; then
+            echo "Setting up client container with private key for outbound SSH..."
+            docker cp "$SSH_KEY_NAME" "$container_name:/tmp/id_rsa"
+            docker exec "$container_name" bash -c "
+                cp /tmp/id_rsa /home/rocky/.ssh/id_rsa
+                chown rocky:rocky /home/rocky/.ssh/id_rsa
+                chmod 600 /home/rocky/.ssh/id_rsa
+                rm /tmp/id_rsa
+                
+                # Create SSH config for easy access to other containers
+                cat > /home/rocky/.ssh/config << 'EOF'
+# SSH config for accessing other Ozone containers
+Host om1
+    HostName om1
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host om2
+    HostName om2
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host om3
+    HostName om3
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host scm1
+    HostName scm1
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host scm2
+    HostName scm2
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host scm3
+    HostName scm3
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host recon
+    HostName recon
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host s3gateway
+    HostName s3gateway
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host datanode1
+    HostName datanode1
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host datanode2
+    HostName datanode2
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host datanode3
+    HostName datanode3
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host httpfs
+    HostName httpfs
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host prometheus
+    HostName prometheus
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host grafana
+    HostName grafana
+    User rocky
+    IdentityFile ~/.ssh/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+                chown rocky:rocky /home/rocky/.ssh/config
+                chmod 600 /home/rocky/.ssh/config
+            "
+        fi
     done
 
     echo "SSH access configured successfully for all containers"
@@ -152,12 +269,13 @@ setup_ssh_config() {
             "httpfs") echo "2233" ;;
             "prometheus") echo "2234" ;;
             "grafana") echo "2235" ;;
+            "client") echo "2236" ;;
             *) echo "" ;;
         esac
     }
     
     # Container list (space-separated string for iteration)
-    container_list="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana"
+    container_list="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana client"
     
     # Create or update SSH config file with proper permissions
     if [[ ! -f "$SSH_CONFIG_FILE" ]]; then
@@ -224,6 +342,7 @@ test_container_access() {
         "scm1"
         "datanode1"
         "recon"
+        "client"
     )
 
     for container_name in "${test_containers[@]}"; do
@@ -247,6 +366,7 @@ show_connection_info() {
     echo "  ssh recon, ssh s3gateway, ssh httpfs"
     echo "  ssh datanode1, ssh datanode2, ssh datanode3"
     echo "  ssh prometheus, ssh grafana"
+    echo "  ssh client"
     echo
     echo "Using ozone_installer.sh with containers:"
     echo "  CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh"
@@ -257,6 +377,7 @@ show_connection_info() {
     echo "  Service Containers: recon (port 2228), s3gateway (port 2229), httpfs (port 2233)"
     echo "  DataNode Containers: datanode1 (port 2230), datanode2 (port 2231), datanode3 (port 2232)"
     echo "  Observability: prometheus (port 2234), grafana (port 2235)"
+    echo "  Client: client (port 2236)"
     echo
     echo "Cluster Management:"
     echo "  View container status: docker ps"
@@ -290,7 +411,7 @@ cleanup_ssh_config() {
 # Function to connect to a specific container
 connect_to_container() {
     local container_name="$1"
-    local valid_containers="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana"
+    local valid_containers="om1 om2 om3 scm1 scm2 scm3 recon s3gateway datanode1 datanode2 datanode3 httpfs prometheus grafana client"
     
     # Check if container name is valid
     local found=false
@@ -341,7 +462,7 @@ main() {
         "connect")
             if [[ -z "$2" ]]; then
                 echo "Usage: $0 connect <container_name>"
-                echo "Available containers: om1, om2, om3, scm1, scm2, scm3, recon, s3gateway, datanode1, datanode2, datanode3, httpfs, prometheus, grafana"
+                echo "Available containers: om1, om2, om3, scm1, scm2, scm3, recon, s3gateway, datanode1, datanode2, datanode3, httpfs, prometheus, grafana, client"
                 exit 1
             fi
             connect_to_container "$2"
@@ -360,7 +481,7 @@ main() {
             echo ""
             echo "Available containers for connect command:"
             echo "  om1, om2, om3, scm1, scm2, scm3, recon, s3gateway"
-            echo "  datanode1, datanode2, datanode3, httpfs, prometheus, grafana"
+            echo "  datanode1, datanode2, datanode3, httpfs, prometheus, grafana, client"
             echo ""
             echo "After setup, use ozone_installer.sh with:"
             echo "  CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh"

@@ -5,14 +5,9 @@
 
 set -e
 
-# Load configuration from ozone-docker-ssh.conf (default) or multi-host.conf (fallback)
+# Load configuration from multi-host.conf
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/ozone-docker-ssh.conf}"
-
-# Fallback to multi-host.conf if ozone-docker-ssh.conf doesn't exist
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    CONFIG_FILE="$SCRIPT_DIR/multi-host.conf"
-fi
+CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/multi-host.conf}"
 
 # Source configuration
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -418,8 +413,8 @@ show_connection_info() {
     echo "  Check logs: ssh <container> 'ls -la /var/log/hadoop/'"
     echo
     echo "Manual Installation (if needed):"
-    echo "  CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh"
-    echo "  CONFIG_FILE=ozone-docker-ssh.conf ./start_ozone_services.sh"
+    echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
+    echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
     echo
     echo "Container Details:"
     echo "  OM Containers: om1 (port 2222), om2 (port 2223), om3 (port 2224)"
@@ -515,8 +510,8 @@ main() {
                 echo ""
                 echo "Automatic Ozone installation skipped (AUTO_INSTALL_OZONE=false)"
                 echo "To install Ozone manually, run:"
-                echo "  CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh"
-                echo "  CONFIG_FILE=ozone-docker-ssh.conf ./start_ozone_services.sh"
+                echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
+                echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
             fi
             
             show_connection_info
@@ -558,15 +553,15 @@ main() {
             echo ""
             echo "Environment Variables:"
             echo "  AUTO_INSTALL_OZONE  - Set to 'false' to skip automatic Ozone installation (default: true)"
-            echo "  CONFIG_FILE         - Override config file (default: ozone-docker-ssh.conf)"
+            echo "  CONFIG_FILE         - Override config file (default: multi-host.conf)"
             echo ""
             echo "Available containers for connect command:"
             echo "  om1, om2, om3, scm1, scm2, scm3, recon, s3gateway"
             echo "  datanode1, datanode2, datanode3, httpfs, prometheus, grafana, client"
             echo ""
             echo "Manual installation (if AUTO_INSTALL_OZONE=false):"
-            echo "  CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh"
-            echo "  CONFIG_FILE=ozone-docker-ssh.conf ./start_ozone_services.sh"
+            echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
+            echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
             exit 1
             ;;
     esac

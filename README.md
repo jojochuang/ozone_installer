@@ -374,8 +374,8 @@ ssh scm1 'ps aux | grep -i ozone | grep -v grep'
 AUTO_INSTALL_OZONE=false ./setup-ozone-docker-ssh.sh start
 
 # Manual installation (if AUTO_INSTALL_OZONE=false)
-CONFIG_FILE=ozone-docker-ssh.conf ./ozone_installer.sh
-CONFIG_FILE=ozone-docker-ssh.conf ./start_ozone_services.sh
+CONFIG_FILE=multi-host.conf ./ozone_installer.sh
+CONFIG_FILE=multi-host.conf ./start_ozone_services.sh
 ```
 
 The multi-host approach creates a 14-container setup:
@@ -562,7 +562,7 @@ Services communicate using hostnames within the Docker network (e.g., `http://om
 - `setup-ozone-compose.sh` - Multi-container setup script (docker exec access)
 - `setup-ozone-docker-ssh.sh` - Multi-container setup script with SSH access
 - `ozone-compose.conf` - Configuration file for Docker Compose setup
-- `ozone-docker-ssh.conf` - Configuration file for SSH-accessible Docker setup
+- `multi-host.conf` - Configuration file for SSH-accessible Docker setup
 - `tests/test_setup_ozone_compose.sh` - Test script for docker exec setup
 - `tests/test_setup_ozone_docker_ssh.sh` - Test script for SSH-accessible setup
 

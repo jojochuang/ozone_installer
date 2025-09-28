@@ -90,6 +90,7 @@ run_container() {
         -p 9882:9882 \
         -p 9090:9090 \
         -p 3000:3000 \
+        -v "$(pwd):/opt/ozone-installer" \
         $IMAGE_NAME
 
     echo "Container started successfully: $CONTAINER_NAME"
@@ -164,6 +165,7 @@ show_connection_info() {
     echo "  Username: rocky"
     echo "  Private key: $SSH_KEY_NAME"
     echo "  Public key: $SSH_KEY_NAME.pub"
+    echo "  Scripts directory: /opt/ozone-installer (mounted from current directory)"
     echo
     echo "Ozone service ports exposed:"
     echo "  OM Web UI: http://localhost:9874"

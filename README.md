@@ -487,6 +487,15 @@ Services communicate using hostnames within the Docker network (e.g., `http://om
 
    **Note**: Host key checking is disabled for development containers to avoid connection issues when containers are rebuilt with new SSH host keys.
 
+4. Access scripts from within the container:
+   ```bash
+   # After SSH-ing into the container
+   cd /opt/ozone-installer
+   ./ozone_installer.sh --help
+   ```
+
+   The current directory is mounted at `/opt/ozone-installer` inside the container, providing access to all scripts and configuration files.
+
 ### Single Container Script Options
 
 - `./setup-rocky9-ssh.sh start` - Build and start the container (default)

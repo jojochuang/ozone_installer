@@ -395,6 +395,19 @@ install_jdk() {
 
         echo \"Using package manager: \$PKG_MGR\"
 
+        # Update package manager cache first to ensure we have current package information
+        case \$PKG_MGR in
+            \"yum\"|\"dnf\")
+                sudo \$PKG_MGR makecache -y >/dev/null 2>&1 || true
+                ;;
+            \"apt-get\")
+                sudo \$PKG_MGR update >/dev/null 2>&1 || true
+                ;;
+            \"zypper\")
+                sudo zypper refresh >/dev/null 2>&1 || true
+                ;;
+        esac
+
         # Function to check if a package exists
         package_exists() {
             case \$PKG_MGR in
@@ -437,10 +450,13 @@ install_jdk() {
                 done
 
                 if [[ -n \"\$valid_packages\" ]]; then
-                    sudo \$PKG_MGR update -y
+                    echo \"Installing packages: \$valid_packages\"
                     sudo \$PKG_MGR install -y \$valid_packages
                 else
                     echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"Attempted packages: \$JDK_PACKAGES\"
+                    echo \"Available Java packages:\"
+                    \$PKG_MGR list available 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"
                     exit 1
                 fi
                 ;;
@@ -450,15 +466,16 @@ install_jdk() {
                 JDK_PACKAGES=\"openjdk-$jdk_version-jdk\"
 
                 if package_exists \"\$JDK_PACKAGES\"; then
-                    sudo \$PKG_MGR update -y
+                    echo \"Installing package: \$JDK_PACKAGES\"
                     sudo \$PKG_MGR install -y \$JDK_PACKAGES
                 else
                     echo \"OpenJDK $jdk_version not available. Checking for alternatives...\"
+                    echo \"Available Java packages:\"
+                    apt-cache search openjdk | head -10 2>/dev/null || echo \"Could not list available Java packages\"
                     # Try alternative versions
                     for alt_version in 11 17 21 8; do
                         if [[ \"\$alt_version\" != \"$jdk_version\" ]] && package_exists \"openjdk-\$alt_version-jdk\"; then
                             echo \"Installing OpenJDK \$alt_version instead\"
-                            sudo \$PKG_MGR update -y
                             sudo \$PKG_MGR install -y \"openjdk-\$alt_version-jdk\"
                             break
                         fi
@@ -483,10 +500,13 @@ install_jdk() {
                 done
 
                 if [[ -n \"\$valid_packages\" ]]; then
-                    sudo zypper refresh
+                    echo \"Installing packages: \$valid_packages\"
                     sudo zypper install -y \$valid_packages
                 else
                     echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"Attempted packages: \$JDK_PACKAGES\"
+                    echo \"Available Java packages:\"
+                    zypper search 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"
                     exit 1
                 fi
                 ;;

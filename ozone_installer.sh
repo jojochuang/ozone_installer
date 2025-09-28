@@ -841,6 +841,7 @@ configure_hosts_parallel() {
 
     # Wait for all remaining configurations to complete
     local success_count=0
+    local failed_hosts=()
 
     for pid in "${pids[@]}"; do
         if [[ -n "$pid" ]]; then
@@ -852,10 +853,23 @@ configure_hosts_parallel() {
         fi
     done
 
-    info "Parallel host configurations completed: $success_count/${#hosts[@]} successful"
+    # Determine which hosts failed by checking against successful ones
+    # We'll identify failed hosts by testing a simple marker that successful configs would create
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+        # Check if host configuration was successful by testing if Ozone is properly installed
+        if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -d $OZONE_INSTALL_DIR && test -f $OZONE_INSTALL_DIR/bin/ozone" 2>/dev/null; then
+            info "Verified successful configuration on $host"
+        else
+            failed_hosts+=("$host")
+            warn "Configuration verification failed on $host"
+        fi
+    done
 
-    if [[ $success_count -ne ${#hosts[@]} ]]; then
-        warn "Some host configurations failed"
+    info "Parallel host configurations completed: $((${#hosts[@]} - ${#failed_hosts[@]}))/${#hosts[@]} successful"
+
+    if [[ ${#failed_hosts[@]} -gt 0 ]]; then
+        warn "Host configuration failed on: ${failed_hosts[*]}"
         return 1
     fi
 

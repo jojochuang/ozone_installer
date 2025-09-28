@@ -155,6 +155,14 @@ test_parallel_configuration() {
     run_test "Sequential loop was replaced with parallel call" \
         "grep -q 'configure_hosts_parallel.*jdk_version.*local_tarball_path.*HOSTS' $PROJECT_DIR/ozone_installer.sh" \
         0
+
+    run_test "Failed hosts are properly identified and reported" \
+        "grep -A10 'Configuration verification failed' $PROJECT_DIR/ozone_installer.sh | grep -q 'failed_hosts.*host'" \
+        0
+
+    run_test "Error message includes specific failed hosts" \
+        "grep -q 'Host configuration failed on.*failed_hosts' $PROJECT_DIR/ozone_installer.sh" \
+        0
 }
 
 # Test file generation functions

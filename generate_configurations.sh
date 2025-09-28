@@ -194,8 +194,10 @@ create_ozone_site_xml() {
     IFS=',' read -ra CLUSTER_HOST_ARRAY <<< "$CLUSTER_HOSTS"
     IFS=',' read -ra OM_HOST_ARRAY <<< "$OM_HOSTS"
     IFS=',' read -ra SCM_HOST_ARRAY <<< "$SCM_HOSTS"
+    IFS=',' read -ra RECON_HOST_ARRAY <<< "$RECON_HOSTS"
     
     local primary_host=$(echo "${CLUSTER_HOST_ARRAY[0]}" | xargs)
+    local recon_host=$(echo "${RECON_HOST_ARRAY[0]}" | xargs)
     local is_om_ha=$([[ ${#OM_HOST_ARRAY[@]} -gt 1 ]] && echo "true" || echo "false")
     local is_scm_ha=$([[ ${#SCM_HOST_ARRAY[@]} -gt 1 ]] && echo "true" || echo "false")
     
@@ -301,7 +303,7 @@ EOF
   <!-- Recon Configuration -->
   <property>
     <name>ozone.recon.address</name>
-    <value>$primary_host</value>
+    <value>$recon_host</value>
     <description>The hostname or IP address of Recon</description>
   </property>
 

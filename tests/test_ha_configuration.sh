@@ -123,6 +123,12 @@ test_single_host_non_ha() {
         
     run_test "Single-host config does not generate SCM nodes" \
         "cd '$PROJECT_DIR' && ! grep -q \"<name>ozone.scm.nodes\" ozone-config/ozone-site.xml"
+        
+    run_test "Multi-host config uses correct Recon host address" \
+        "cd '$PROJECT_DIR' && rm -rf ozone-config && CONFIG_FILE='$CONFIG_FILE_MULTI' bash -c './generate_configurations.sh >/dev/null 2>&1; grep -A1 \"<name>ozone.recon.address</name>\" ozone-config/ozone-site.xml | grep -q \"<value>recon</value>\"'"
+        
+    run_test "Single-host config uses correct Recon host address" \
+        "cd '$PROJECT_DIR' && rm -rf ozone-config && CONFIG_FILE='$CONFIG_FILE_SINGLE' bash -c './generate_configurations.sh >/dev/null 2>&1; grep -A1 \"<name>ozone.recon.address</name>\" ozone-config/ozone-site.xml | grep -q \"<value>ozone</value>\"'"
 }
 
 # Test 3: Configuration files have service IDs

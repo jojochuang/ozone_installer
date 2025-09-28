@@ -247,6 +247,25 @@ services:
       - OZONE_SERVICE=grafana
       - OZONE_NODE_ID=grafana
 
+  # Client Container - for SSH access to other containers
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky9
+    image: rocky9-ssh
+    container_name: ozone-client
+    hostname: client
+    ports:
+      - "2236:22"    # SSH
+    volumes:
+      - client-data:/home/rocky
+      - .:/opt/ozone-installer
+    networks:
+      - ozone-network
+    environment:
+      - OZONE_SERVICE=client
+      - OZONE_NODE_ID=client
+
 volumes:
   om1-data:
   om2-data:
@@ -262,6 +281,7 @@ volumes:
   httpfs-data:
   prometheus-data:
   grafana-data:
+  client-data:
 
 networks:
   ozone-network:

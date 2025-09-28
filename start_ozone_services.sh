@@ -688,15 +688,6 @@ start_service_on_hosts() {
         "$start_function" "$host"
     done
 }
-main() {
-    log "Starting Ozone Services"
-
-    # Load configuration
-    load_config
-
-    # Convert CLUSTER_HOSTS to array
-    IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
-
 # Main function
 main() {
     log "Starting Ozone Services"
@@ -816,7 +807,7 @@ main() {
             log "    http://$host:14000"
         done
     fi
-}
+    
     log ""
     log "To check cluster status:"
     log "  ozone admin safemode status"

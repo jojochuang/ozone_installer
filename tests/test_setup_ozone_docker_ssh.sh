@@ -129,7 +129,7 @@ test_script_structure() {
         0
 
     run_test "Script has all expected command options" \
-        "grep -A30 'case.*{1:-start}' $SETUP_SCRIPT | grep -c '\"start\"\|\"stop\"\|\"clean\"\|\"status\"\|\"connect\"\|\"info\"' | grep -q '^5$'" \
+        "grep -A100 'case.*{1:-start}' $SETUP_SCRIPT | grep -c '\"start\"\|\"stop\"\|\"clean\"\|\"status\"\|\"connect\"\|\"info\"' | grep -q '^6$'" \
         0
 
     run_test "Script includes SSH key generation" \

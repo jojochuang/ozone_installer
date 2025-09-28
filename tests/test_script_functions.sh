@@ -136,6 +136,27 @@ test_ssh_validation() {
         0
 }
 
+# Test parallel configuration functions
+test_parallel_configuration() {
+    echo "Testing parallel configuration functions..."
+
+    run_test "Parallel host configuration function exists" \
+        "grep -q 'configure_hosts_parallel()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    run_test "Parallel configuration uses MAX_CONCURRENT_TRANSFERS" \
+        "grep -A10 'configure_hosts_parallel()' $PROJECT_DIR/ozone_installer.sh | grep -q 'MAX_CONCURRENT_TRANSFERS'" \
+        0
+
+    run_test "Parallel configuration follows same pattern as transfer function" \
+        "grep -A5 'configure_hosts_parallel()' $PROJECT_DIR/ozone_installer.sh | grep -q 'max_concurrent.*MAX_CONCURRENT_TRANSFERS'" \
+        0
+
+    run_test "Sequential loop was replaced with parallel call" \
+        "grep -q 'configure_hosts_parallel.*jdk_version.*local_tarball_path.*HOSTS' $PROJECT_DIR/ozone_installer.sh" \
+        0
+}
+
 # Test file generation functions
 test_file_generation() {
     echo "Testing file generation functions..."
@@ -209,6 +230,7 @@ main() {
     test_logging_functions || true
     test_config_validation || true
     test_ssh_validation || true
+    test_parallel_configuration || true
     test_file_generation || true
     test_host_info || true
     test_service_management || true

@@ -86,6 +86,18 @@ fi
 
 echo ""
 
+# Run HA configuration tests
+echo "5. Testing HA configuration generation"
+echo "======================================="
+if run_test_script "$SCRIPT_DIR/test_ha_configuration.sh" "HA configuration generation"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+((TOTAL_TESTS++))
+
+echo ""
+
 # Summary
 echo "Overall Test Summary"
 echo "===================="

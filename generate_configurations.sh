@@ -6,7 +6,7 @@
 set -e
 
 # Configuration file path
-CONFIG_FILE="$(dirname "$0")/multi-host.conf"
+CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -82,17 +82,127 @@ create_core_site_xml() {
 EOF
 }
 
+# Helper function to generate OM HA configuration
+generate_om_ha_config() {
+    local service_id="$1"
+    
+    # Parse OM hosts
+    IFS=',' read -ra OM_HOST_ARRAY <<< "$OM_HOSTS"
+    
+    # Generate OM service IDs property
+    cat << EOF
+  <property>
+    <name>ozone.om.service.ids</name>
+    <value>$service_id</value>
+    <description>OM service IDs</description>
+  </property>
+
+EOF
+
+    # Generate OM nodes list
+    local om_nodes=""
+    for i in "${!OM_HOST_ARRAY[@]}"; do
+        local host=$(echo "${OM_HOST_ARRAY[$i]}" | xargs)
+        if [[ $i -eq 0 ]]; then
+            om_nodes="$host"
+        else
+            om_nodes="$om_nodes,$host"
+        fi
+    done
+    
+    cat << EOF
+  <property>
+    <name>ozone.om.nodes.$service_id</name>
+    <value>$om_nodes</value>
+    <description>OM nodes for service $service_id</description>
+  </property>
+
+EOF
+
+    # Generate individual OM address configurations
+    for host in "${OM_HOST_ARRAY[@]}"; do
+        host=$(echo "$host" | xargs)
+        cat << EOF
+  <property>
+    <name>ozone.om.address.$service_id.$host</name>
+    <value>$host</value>
+    <description>OM address for $host in service $service_id</description>
+  </property>
+
+EOF
+    done
+}
+
+# Helper function to generate SCM HA configuration
+generate_scm_ha_config() {
+    local service_id="$1"
+    
+    # Parse SCM hosts
+    IFS=',' read -ra SCM_HOST_ARRAY <<< "$SCM_HOSTS"
+    
+    # Generate SCM service IDs property
+    cat << EOF
+  <property>
+    <name>ozone.scm.service.ids</name>
+    <value>$service_id</value>
+    <description>SCM service IDs</description>
+  </property>
+
+EOF
+
+    # Generate SCM nodes list
+    local scm_nodes=""
+    for i in "${!SCM_HOST_ARRAY[@]}"; do
+        local host=$(echo "${SCM_HOST_ARRAY[$i]}" | xargs)
+        if [[ $i -eq 0 ]]; then
+            scm_nodes="$host"
+        else
+            scm_nodes="$scm_nodes,$host"
+        fi
+    done
+    
+    cat << EOF
+  <property>
+    <name>ozone.scm.nodes.$service_id</name>
+    <value>$scm_nodes</value>
+    <description>SCM nodes for service $service_id</description>
+  </property>
+
+EOF
+
+    # Generate individual SCM address configurations
+    for host in "${SCM_HOST_ARRAY[@]}"; do
+        host=$(echo "$host" | xargs)
+        cat << EOF
+  <property>
+    <name>ozone.scm.address.$service_id.$host</name>
+    <value>$host</value>
+    <description>SCM address for $host in service $service_id</description>
+  </property>
+
+EOF
+    done
+}
+
 # Function to create ozone-site.xml
 create_ozone_site_xml() {
     local output_file="$1"
 
     log "Creating ozone-site.xml at $output_file"
 
-    # Get the first host as SCM and OM leader
-    IFS=',' read -ra HOSTS <<< "$CLUSTER_HOSTS"
-    local primary_host=$(echo "${HOSTS[0]}" | xargs)
+    # Parse cluster hosts and determine if this is HA setup
+    IFS=',' read -ra CLUSTER_HOST_ARRAY <<< "$CLUSTER_HOSTS"
+    IFS=',' read -ra OM_HOST_ARRAY <<< "$OM_HOSTS"
+    IFS=',' read -ra SCM_HOST_ARRAY <<< "$SCM_HOSTS"
+    
+    local primary_host=$(echo "${CLUSTER_HOST_ARRAY[0]}" | xargs)
+    local is_om_ha=$([[ ${#OM_HOST_ARRAY[@]} -gt 1 ]] && echo "true" || echo "false")
+    local is_scm_ha=$([[ ${#SCM_HOST_ARRAY[@]} -gt 1 ]] && echo "true" || echo "false")
+    
+    log "OM HA: $is_om_ha (${#OM_HOST_ARRAY[@]} hosts), SCM HA: $is_scm_ha (${#SCM_HOST_ARRAY[@]} hosts)"
 
-    cat > "$output_file" << EOF
+    # Create the XML file with header
+    cat > "$output_file" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <!--
@@ -110,19 +220,53 @@ create_ozone_site_xml() {
 -->
 
 <configuration>
-  <!-- Storage Container Manager (SCM) Configuration -->
+EOF
+
+    # Add SCM Configuration
+    if [[ "$is_scm_ha" == "true" ]]; then
+        log "Generating SCM HA configuration with service ID: $OZONE_SCM_SERVICE_ID"
+        generate_scm_ha_config "$OZONE_SCM_SERVICE_ID" >> "$output_file"
+    else
+        log "Generating single SCM configuration"
+        local scm_host=$(echo "${SCM_HOST_ARRAY[0]}" | xargs)
+        cat >> "$output_file" << EOF
+  <!-- Storage Container Manager (SCM) Configuration - Non-HA -->
   <property>
     <name>ozone.scm.names</name>
-    <value>$primary_host</value>
+    <value>$scm_host</value>
     <description>The hostname or IP address of the Storage Container Manager</description>
   </property>
 
   <property>
     <name>ozone.scm.client.address</name>
-    <value>$primary_host:9860</value>
+    <value>$scm_host:9860</value>
     <description>The address and port for the SCM client</description>
   </property>
 
+EOF
+    fi
+
+    # Add OM Configuration
+    if [[ "$is_om_ha" == "true" ]]; then
+        log "Generating OM HA configuration with service ID: $OZONE_OM_SERVICE_ID"
+        generate_om_ha_config "$OZONE_OM_SERVICE_ID" >> "$output_file"
+    else
+        log "Generating single OM configuration"
+        local om_host=$(echo "${OM_HOST_ARRAY[0]}" | xargs)
+        cat >> "$output_file" << EOF
+  <!-- Ozone Manager (OM) Configuration - Non-HA -->
+  <property>
+    <name>ozone.om.address</name>
+    <value>$om_host</value>
+    <description>The hostname or IP address of the Ozone Manager</description>
+  </property>
+
+EOF
+    fi
+
+    # Add common configurations
+    cat >> "$output_file" << EOF
+  <!-- SCM Storage Configuration -->
   <property>
     <name>ozone.scm.db.dirs</name>
     <value>$OZONE_SCM_DB_DIRS</value>
@@ -141,13 +285,7 @@ create_ozone_site_xml() {
     <description>SCM metadata directory</description>
   </property>
 
-  <!-- Ozone Manager (OM) Configuration -->
-  <property>
-    <name>ozone.om.address</name>
-    <value>$primary_host</value>
-    <description>The hostname or IP address of the Ozone Manager</description>
-  </property>
-
+  <!-- OM Storage Configuration -->
   <property>
     <name>ozone.om.db.dirs</name>
     <value>$OZONE_OM_DB_DIR</value>

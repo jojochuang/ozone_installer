@@ -395,6 +395,19 @@ install_jdk() {
 
         echo \"Using package manager: \$PKG_MGR\"
 
+        # Update package manager cache first to ensure we have current package information
+        case \$PKG_MGR in
+            \"yum\"|\"dnf\")
+                sudo \$PKG_MGR makecache -y >/dev/null 2>&1 || true
+                ;;
+            \"apt-get\")
+                sudo \$PKG_MGR update >/dev/null 2>&1 || true
+                ;;
+            \"zypper\")
+                sudo zypper refresh >/dev/null 2>&1 || true
+                ;;
+        esac
+
         # Function to check if a package exists
         package_exists() {
             case \$PKG_MGR in
@@ -437,10 +450,13 @@ install_jdk() {
                 done
 
                 if [[ -n \"\$valid_packages\" ]]; then
-                    sudo \$PKG_MGR update -y
+                    echo \"Installing packages: \$valid_packages\"
                     sudo \$PKG_MGR install -y \$valid_packages
                 else
                     echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"Attempted packages: \$JDK_PACKAGES\"
+                    echo \"Available Java packages:\"
+                    \$PKG_MGR list available 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"
                     exit 1
                 fi
                 ;;
@@ -450,15 +466,16 @@ install_jdk() {
                 JDK_PACKAGES=\"openjdk-$jdk_version-jdk\"
 
                 if package_exists \"\$JDK_PACKAGES\"; then
-                    sudo \$PKG_MGR update -y
+                    echo \"Installing package: \$JDK_PACKAGES\"
                     sudo \$PKG_MGR install -y \$JDK_PACKAGES
                 else
                     echo \"OpenJDK $jdk_version not available. Checking for alternatives...\"
+                    echo \"Available Java packages:\"
+                    apt-cache search openjdk | head -10 2>/dev/null || echo \"Could not list available Java packages\"
                     # Try alternative versions
                     for alt_version in 11 17 21 8; do
                         if [[ \"\$alt_version\" != \"$jdk_version\" ]] && package_exists \"openjdk-\$alt_version-jdk\"; then
                             echo \"Installing OpenJDK \$alt_version instead\"
-                            sudo \$PKG_MGR update -y
                             sudo \$PKG_MGR install -y \"openjdk-\$alt_version-jdk\"
                             break
                         fi
@@ -483,10 +500,13 @@ install_jdk() {
                 done
 
                 if [[ -n \"\$valid_packages\" ]]; then
-                    sudo zypper refresh
+                    echo \"Installing packages: \$valid_packages\"
                     sudo zypper install -y \$valid_packages
                 else
                     echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"Attempted packages: \$JDK_PACKAGES\"
+                    echo \"Available Java packages:\"
+                    zypper search 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"
                     exit 1
                 fi
                 ;;
@@ -708,6 +728,168 @@ transfer_tarball_parallel() {
 
     if [[ ${#failed_hosts[@]} -gt 0 ]]; then
         warn "Failed transfers to: ${failed_hosts[*]}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Function to configure multiple hosts in parallel
+configure_hosts_parallel() {
+    local jdk_version=$1
+    local local_tarball_path=$2
+    shift 2
+    local hosts=("$@")
+    local max_concurrent=${MAX_CONCURRENT_TRANSFERS:-10}
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Configuring ${#hosts[@]} hosts in parallel (max $max_concurrent concurrent configurations)..."
+
+    local pids=()
+    local active_configs=0
+    local failed_hosts=()
+
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+
+        # Wait if we've reached the maximum concurrent configurations
+        while [[ $active_configs -ge $max_concurrent ]]; do
+            # Check for completed configurations
+            for i in "${!pids[@]}"; do
+                if ! kill -0 "${pids[$i]}" 2>/dev/null; then
+                    wait "${pids[$i]}"
+                    local wait_result=$?
+                    if [[ $wait_result -eq 0 ]]; then
+                        info "Host configuration completed successfully"
+                    else
+                        warn "Host configuration failed for one host"
+                    fi
+                    unset pids["$i"]
+                    ((active_configs--))
+                fi
+            done
+            sleep 1
+        done
+
+        # Start configuration for this host in background
+        (
+            log "Configuring host: $host"
+
+            # Configure CPU governor
+            if ! configure_cpu_governor "$host"; then
+                echo "FAILED:$host:cpu_governor"
+                exit 1
+            fi
+
+            # Disable THP
+            if ! disable_thp "$host"; then
+                echo "FAILED:$host:thp"
+                exit 1
+            fi
+
+            # Disable SELinux
+            if ! disable_selinux "$host"; then
+                echo "FAILED:$host:selinux"
+                exit 1
+            fi
+
+            # Configure swappiness
+            if ! configure_swappiness "$host"; then
+                echo "FAILED:$host:swappiness"
+                exit 1
+            fi
+
+            # Validate filesystems for ozone directories
+            om_dirs="$OZONE_OM_DB_DIR $OZONE_METADATA_DIRS $OZONE_OM_RATIS_STORAGE_DIR"
+            scm_dirs="$OZONE_SCM_DB_DIRS $OZONE_SCM_HA_RATIS_STORAGE_DIR $OZONE_SCM_METADATA_DIRS"
+            recon_dirs="$OZONE_RECON_DB_DIR $OZONE_RECON_SCM_DB_DIRS $OZONE_RECON_OM_DB_DIR $OZONE_RECON_METADATA_DIRS"
+            datanode_dirs="$OZONE_SCM_DATANODE_ID_DIR $DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR $HDDS_DATANODE_DIR $OZONE_DATANODE_METADATA_DIRS"
+
+            # Combine all directories for validation
+            all_dirs="$om_dirs $scm_dirs $recon_dirs $datanode_dirs"
+            if ! validate_filesystem "$host" "$all_dirs"; then
+                echo "FAILED:$host:filesystem"
+                exit 1
+            fi
+
+            # Install JDK
+            if ! install_jdk "$host" "$jdk_version"; then
+                echo "FAILED:$host:jdk"
+                exit 1
+            fi
+
+            # Install time synchronization
+            if ! install_time_sync "$host"; then
+                echo "FAILED:$host:time_sync"
+                exit 1
+            fi
+
+            # Install Apache Ozone (tarball already transferred in parallel)
+            if ! install_ozone "$host" "$local_tarball_path"; then
+                echo "FAILED:$host:ozone"
+                exit 1
+            fi
+
+            # Install Prometheus if enabled
+            if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
+                if ! install_prometheus "$host"; then
+                    echo "FAILED:$host:prometheus"
+                    exit 1
+                fi
+            else
+                log "Skipping Prometheus installation on $host (INSTALL_PROMETHEUS=$INSTALL_PROMETHEUS)"
+            fi
+
+            # Install Grafana if enabled
+            if [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
+                if ! install_grafana "$host"; then
+                    echo "FAILED:$host:grafana"
+                    exit 1
+                fi
+            else
+                log "Skipping Grafana installation on $host (INSTALL_GRAFANA=$INSTALL_GRAFANA)"
+            fi
+
+            log "Host $host configuration completed"
+            echo "SUCCESS:$host"
+        ) &
+
+        pids+=($!)
+        ((active_configs++))
+        info "Started configuration for $host (PID: $!)"
+    done
+
+    # Wait for all remaining configurations to complete
+    local success_count=0
+    local failed_hosts=()
+
+    for pid in "${pids[@]}"; do
+        if [[ -n "$pid" ]]; then
+            wait "$pid"
+            local wait_result=$?
+            if [[ $wait_result -eq 0 ]]; then
+                ((success_count++))
+            fi
+        fi
+    done
+
+    # Determine which hosts failed by checking against successful ones
+    # We'll identify failed hosts by testing a simple marker that successful configs would create
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+        # Check if host configuration was successful by testing if Ozone is properly installed
+        if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "test -d $OZONE_INSTALL_DIR && test -f $OZONE_INSTALL_DIR/bin/ozone" 2>/dev/null; then
+            info "Verified successful configuration on $host"
+        else
+            failed_hosts+=("$host")
+            warn "Configuration verification failed on $host"
+        fi
+    done
+
+    info "Parallel host configurations completed: $((${#hosts[@]} - ${#failed_hosts[@]}))/${#hosts[@]} successful"
+
+    if [[ ${#failed_hosts[@]} -gt 0 ]]; then
+        warn "Host configuration failed on: ${failed_hosts[*]}"
         return 1
     fi
 
@@ -1134,59 +1316,11 @@ main() {
         log "Reasons: local_tarball_path='$local_tarball_path', file_exists=$(test -f "$local_tarball_path" && echo "yes" || echo "no")"
     fi
 
-    # Configure each host
-    for host in "${HOSTS[@]}"; do
-        host=$(echo "$host" | xargs)
-
-        log "Configuring host: $host"
-
-        # Configure CPU governor
-        configure_cpu_governor "$host"
-
-        # Disable THP
-        disable_thp "$host"
-
-        # Disable SELinux
-        disable_selinux "$host"
-
-        # Configure swappiness
-        configure_swappiness "$host"
-
-        # Validate filesystems for ozone directories
-        om_dirs="$OZONE_OM_DB_DIR $OZONE_METADATA_DIRS $OZONE_OM_RATIS_STORAGE_DIR"
-        scm_dirs="$OZONE_SCM_DB_DIRS $OZONE_SCM_HA_RATIS_STORAGE_DIR $OZONE_SCM_METADATA_DIRS"
-        recon_dirs="$OZONE_RECON_DB_DIR $OZONE_RECON_SCM_DB_DIRS $OZONE_RECON_OM_DB_DIR $OZONE_RECON_METADATA_DIRS"
-        datanode_dirs="$OZONE_SCM_DATANODE_ID_DIR $DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR $HDDS_DATANODE_DIR $OZONE_DATANODE_METADATA_DIRS"
-
-        # Combine all directories for validation
-        all_dirs="$om_dirs $scm_dirs $recon_dirs $datanode_dirs"
-        validate_filesystem "$host" "$all_dirs"
-
-        # Install JDK
-        install_jdk "$host" "$jdk_version"
-
-        # Install time synchronization
-        install_time_sync "$host"
-
-        # Install Apache Ozone (tarball already transferred in parallel)
-        install_ozone "$host" "$local_tarball_path"
-
-        # Install Prometheus if enabled
-        if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
-            install_prometheus "$host"
-        else
-            log "Skipping Prometheus installation (INSTALL_PROMETHEUS=$INSTALL_PROMETHEUS)"
-        fi
-
-        # Install Grafana if enabled
-        if [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
-            install_grafana "$host"
-        else
-            log "Skipping Grafana installation (INSTALL_GRAFANA=$INSTALL_GRAFANA)"
-        fi
-
-        log "Host $host configuration completed"
-    done
+    # Configure all hosts in parallel
+    if ! configure_hosts_parallel "$jdk_version" "$local_tarball_path" "${HOSTS[@]}"; then
+        error "Some host configurations failed"
+        exit 1
+    fi
 
     # Preserve centrally downloaded tarball for future reuse
     if [[ -n "$local_tarball_path" ]] && [[ "$local_tarball_path" == "/tmp/ozone-"* ]] && [[ -f "$local_tarball_path" ]]; then

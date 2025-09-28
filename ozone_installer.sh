@@ -32,6 +32,28 @@ info() {
     echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
 }
 
+# Helper function to execute SSH commands with proper authentication
+ssh_exec() {
+    local host=$1
+    shift
+    local command="$*"
+
+    # First try using SSH config (works with setup-ozone-docker-ssh.sh containers)
+    if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$host" "$command" 2>/dev/null; then
+        return 0
+    fi
+
+    # Fallback to explicit key specification for direct host connections
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+    
+    if [[ -f "$ssh_key_expanded" ]]; then
+        ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "$command"
+    else
+        # If no key file, try without explicit key (might work with ssh-agent)
+        ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "$command"
+    fi
+}
+
 # Function to load configuration
 load_config() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -55,6 +77,13 @@ check_sudo_privileges() {
 
     info "Checking sudo privileges on $host"
 
+    # First try using SSH config (works with setup-ozone-docker-ssh.sh containers)
+    if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$host" "sudo -n true" >/dev/null 2>&1; then
+        log "Sudo privileges confirmed on $host"
+        return 0
+    fi
+
+    # Fallback to explicit key specification for direct host connections
     # Test if user can run sudo
     if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "sudo -n true" >/dev/null 2>&1; then
         log "Sudo privileges confirmed on $host"
@@ -109,10 +138,21 @@ validate_ssh_connection() {
 
     if [[ ! -f "$ssh_key_expanded" ]]; then
         error "SSH private key file not found: $ssh_key_expanded"
+        # Still try SSH config approach as fallback
+        if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$host" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+            log "SSH connection to $host successful"
+            return 0
+        fi
         return 1
     fi
 
-    # Test SSH connection
+    # First try using SSH config (works with setup-ozone-docker-ssh.sh containers)
+    if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$host" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+        log "SSH connection to $host successful"
+        return 0
+    fi
+
+    # Fallback to explicit key specification for direct host connections
     if ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$host" "echo 'SSH connection successful'" >/dev/null 2>&1; then
         log "SSH connection to $host successful"
         return 0

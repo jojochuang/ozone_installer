@@ -291,6 +291,11 @@ test_jdk_configuration() {
     run_test "JDK version function validates versions" \
         "grep -q '8|11|17|21' $PROJECT_DIR/ozone_installer.sh" \
         0
+
+    # Test that JDK variable expansion is properly escaped in SSH commands
+    run_test "JDK version variables are properly escaped for remote execution" \
+        "grep -q \"jdk_version='\" $PROJECT_DIR/ozone_installer.sh && grep -q '\\\$jdk_version' $PROJECT_DIR/ozone_installer.sh" \
+        0
 }
 
 # Main test execution

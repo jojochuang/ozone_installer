@@ -396,6 +396,7 @@ install_jdk() {
     info "Installing OpenJDK $jdk_version on $host"
 
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        jdk_version='$jdk_version'
         # Detect package manager and distribution
         if command -v yum >/dev/null 2>&1; then
             PKG_MGR=\"yum\"
@@ -444,7 +445,7 @@ install_jdk() {
         case \$PKG_MGR in
             \"yum\"|\"dnf\")
                 # RHEL/Rocky/CentOS package names
-                if [[ \"$jdk_version\" == \"8\" ]]; then
+                if [[ \"\$jdk_version\" == \"8\" ]]; then
                     # Check if JDK 8 is available (not available on RHEL 9+ / Rocky 9+)
                     if package_exists \"java-1.8.0-openjdk\"; then
                         JDK_PACKAGES=\"java-1.8.0-openjdk java-1.8.0-openjdk-devel\"
@@ -453,7 +454,7 @@ install_jdk() {
                         JDK_PACKAGES=\"java-11-openjdk java-11-openjdk-devel\"
                     fi
                 else
-                    JDK_PACKAGES=\"java-$jdk_version-openjdk java-$jdk_version-openjdk-devel\"
+                    JDK_PACKAGES=\"java-\$jdk_version-openjdk java-\$jdk_version-openjdk-devel\"
                 fi
 
                 # Verify packages exist
@@ -470,7 +471,7 @@ install_jdk() {
                     echo \"Installing packages: \$valid_packages\"
                     sudo \$PKG_MGR install -y \$valid_packages
                 else
-                    echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"No valid OpenJDK packages found for version \$jdk_version\"
                     echo \"Attempted packages: \$JDK_PACKAGES\"
                     echo \"Available Java packages:\"
                     \$PKG_MGR list available 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"
@@ -480,18 +481,18 @@ install_jdk() {
 
             \"apt-get\")
                 # Ubuntu/Debian package names
-                JDK_PACKAGES=\"openjdk-$jdk_version-jdk\"
+                JDK_PACKAGES=\"openjdk-\$jdk_version-jdk\"
 
                 if package_exists \"\$JDK_PACKAGES\"; then
                     echo \"Installing package: \$JDK_PACKAGES\"
                     sudo \$PKG_MGR install -y \$JDK_PACKAGES
                 else
-                    echo \"OpenJDK $jdk_version not available. Checking for alternatives...\"
+                    echo \"OpenJDK \$jdk_version not available. Checking for alternatives...\"
                     echo \"Available Java packages:\"
                     apt-cache search openjdk | head -10 2>/dev/null || echo \"Could not list available Java packages\"
                     # Try alternative versions
                     for alt_version in 11 17 21 8; do
-                        if [[ \"\$alt_version\" != \"$jdk_version\" ]] && package_exists \"openjdk-\$alt_version-jdk\"; then
+                        if [[ \"\$alt_version\" != \"\$jdk_version\" ]] && package_exists \"openjdk-\$alt_version-jdk\"; then
                             echo \"Installing OpenJDK \$alt_version instead\"
                             sudo \$PKG_MGR install -y \"openjdk-\$alt_version-jdk\"
                             break
@@ -502,10 +503,10 @@ install_jdk() {
 
             \"zypper\")
                 # SUSE package names
-                if [[ \"$jdk_version\" == \"8\" ]]; then
+                if [[ \"\$jdk_version\" == \"8\" ]]; then
                     JDK_PACKAGES=\"java-1_8_0-openjdk java-1_8_0-openjdk-devel\"
                 else
-                    JDK_PACKAGES=\"java-$jdk_version-openjdk java-$jdk_version-openjdk-devel\"
+                    JDK_PACKAGES=\"java-\$jdk_version-openjdk java-\$jdk_version-openjdk-devel\"
                 fi
 
                 # Verify packages exist
@@ -520,7 +521,7 @@ install_jdk() {
                     echo \"Installing packages: \$valid_packages\"
                     sudo zypper install -y \$valid_packages
                 else
-                    echo \"No valid OpenJDK packages found for version $jdk_version\"
+                    echo \"No valid OpenJDK packages found for version \$jdk_version\"
                     echo \"Attempted packages: \$JDK_PACKAGES\"
                     echo \"Available Java packages:\"
                     zypper search 'java*openjdk*' 2>/dev/null || echo \"Could not list available Java packages\"

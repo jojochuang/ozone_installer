@@ -753,7 +753,11 @@ main() {
     # Wait for safe mode exit (use first OM host)
     IFS=',' read -ra OM_HOSTS_ARRAY <<< "$OM_HOSTS"
     local primary_om_host=$(echo "${OM_HOSTS_ARRAY[0]}" | xargs)
-    wait_for_safe_mode_exit "$primary_om_host"
+    if ! wait_for_safe_mode_exit "$primary_om_host"; then
+        error "Failed to exit safe mode. Ozone services started but cluster may not be fully operational."
+        error "Please check the status manually with: ozone admin safemode status"
+        exit 1
+    fi
 
     log "Ozone services startup completed!"
     log ""

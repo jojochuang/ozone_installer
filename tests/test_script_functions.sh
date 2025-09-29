@@ -227,6 +227,35 @@ test_script_structure() {
         0
 }
 
+# Test JDK configuration functionality
+test_jdk_configuration() {
+    echo "Testing JDK configuration functions..."
+
+    # Test that ask_jdk_version function exists
+    run_test "JDK version function exists" \
+        "grep -q 'ask_jdk_version()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    # Test that function checks for configured JDK_VERSION
+    run_test "JDK version function checks configuration" \
+        "grep -q 'if.*JDK_VERSION.*then' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    # Test that configuration files contain JDK_VERSION comments
+    run_test "Multi-host config has JDK_VERSION documentation" \
+        "grep -q '# JDK Configuration' $PROJECT_DIR/multi-host.conf && grep -q '# Specify JDK version' $PROJECT_DIR/multi-host.conf" \
+        0
+
+    run_test "Single-host config has JDK_VERSION documentation" \
+        "grep -q '# JDK Configuration' $PROJECT_DIR/single-host.conf && grep -q '# Specify JDK version' $PROJECT_DIR/single-host.conf" \
+        0
+
+    # Test that function validates JDK versions
+    run_test "JDK version function validates versions" \
+        "grep -q '8|11|17|21' $PROJECT_DIR/ozone_installer.sh" \
+        0
+}
+
 # Main test execution
 main() {
     echo "Running unit tests for shell script functions"
@@ -243,6 +272,7 @@ main() {
     test_host_info || true
     test_service_management || true
     test_script_structure || true
+    test_jdk_configuration || true
     set -e
 
     # Summary

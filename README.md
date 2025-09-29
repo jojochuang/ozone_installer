@@ -36,6 +36,7 @@ Edit `ozone_installer.conf` to specify:
 - `CLUSTER_HOSTS` - Comma-separated list of hostnames/IPs
 - SSH credentials, port, and key file location
 - Ozone installation settings (version, installation directory)
+- JDK version selection (8, 11, 17, or 21) - **NEW**
 - Ozone directory paths for different components
 - Observability tools settings (Prometheus and Grafana)
 
@@ -58,6 +59,11 @@ HTTPFS_HOSTS="node3.example.com"               # HttpFS service
 # Ozone Installation Settings
 OZONE_VERSION="2.0.0"
 OZONE_INSTALL_DIR="/opt/ozone"
+
+# JDK Configuration (NEW)
+# Specify JDK version to install automatically (supported versions: 8, 11, 17, 21)
+# If not specified or empty, the installer will prompt for JDK version selection
+JDK_VERSION="11"
 
 # Observability Configuration (optional, enabled by default)
 INSTALL_PROMETHEUS="true"  # Set to "false" to disable
@@ -99,7 +105,7 @@ This will:
 - Gather host information (hostname, IP, CPU, OS)
 - Configure system settings (CPU governor, THP, SELinux, swappiness)
 - Validate filesystem requirements
-- Install selected JDK version
+- Install selected JDK version (from config or prompt)
 - Install and configure time synchronization
 - Download and install Ozone on all hosts
 - Generate and distribute Ozone configuration files

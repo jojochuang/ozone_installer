@@ -353,6 +353,23 @@ validate_filesystem() {
 
 # Function to ask for JDK version
 ask_jdk_version() {
+    # Check if JDK_VERSION is already configured
+    if [[ -n "$JDK_VERSION" ]]; then
+        # Validate configured JDK version
+        case "$JDK_VERSION" in
+            8|11|17|21)
+                info "Using configured JDK version: $JDK_VERSION"
+                echo "$JDK_VERSION"
+                return
+                ;;
+            *)
+                warn "Invalid JDK_VERSION '$JDK_VERSION' in configuration file. Supported versions: 8, 11, 17, 21"
+                warn "Falling back to interactive selection"
+                ;;
+        esac
+    fi
+
+    # Interactive JDK version selection
     echo "" >&2
     echo "Select JDK version to install:" >&2
     echo "1) OpenJDK 8 (default, may fall back to JDK 11 on newer distributions)" >&2

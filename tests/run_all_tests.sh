@@ -98,6 +98,18 @@ fi
 
 echo ""
 
+# Run SCM HA formatting tests
+echo "6. Testing SCM HA formatting logic"
+echo "==================================="
+if run_test_script "$SCRIPT_DIR/test_scm_ha_formatting.sh" "SCM HA formatting functionality"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+((TOTAL_TESTS++))
+
+echo ""
+
 # Summary
 echo "Overall Test Summary"
 echo "===================="

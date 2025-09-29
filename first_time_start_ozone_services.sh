@@ -97,8 +97,25 @@ check_ozone_installation() {
 format_scm() {
     local host=$1
     local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+    
+    # Determine if this is SCM HA and if this is the first SCM node
+    local scm_command="--init"
+    if [[ -n "$SCM_HOSTS" ]]; then
+        # Convert comma-separated list to array
+        IFS=',' read -ra SCM_HOST_ARRAY <<< "$SCM_HOSTS"
+        if [[ ${#SCM_HOST_ARRAY[@]} -gt 1 ]]; then
+            # This is SCM HA - check if this is the first node
+            local first_scm_host=$(echo "${SCM_HOST_ARRAY[0]}" | xargs)
+            if [[ "$host" != "$first_scm_host" ]]; then
+                scm_command="--bootstrap"
+                info "SCM HA detected: Using bootstrap for non-first SCM node $host"
+            else
+                info "SCM HA detected: Using init for first SCM node $host"
+            fi
+        fi
+    fi
 
-    info "Formatting SCM on $host"
+    info "Formatting SCM on $host with command: $scm_command"
 
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
         # Set up environment variables
@@ -136,9 +153,9 @@ format_scm() {
         sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_SCM_DB_DIRS\" \"$OZONE_SCM_HA_RATIS_STORAGE_DIR\" \"$OZONE_SCM_METADATA_DIRS\"
         sudo chmod -R 750 \"$OZONE_SCM_DB_DIRS\" \"$OZONE_SCM_HA_RATIS_STORAGE_DIR\" \"$OZONE_SCM_METADATA_DIRS\"
 
-        # Format SCM if not already formatted
-        echo \"Formatting SCM with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
-        \$OZONE_CMD scm --init || echo \"SCM may already be formatted\"
+        # Format SCM with the appropriate command (--init for first node, --bootstrap for others in HA)
+        echo \"Formatting SCM with OZONE_CONF_DIR=\$OZONE_CONF_DIR using command: $scm_command\"
+        \$OZONE_CMD scm $scm_command || echo \"SCM may already be formatted\"
     "
 }
 

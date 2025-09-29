@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Start Ozone Services Script
-# This script starts Ozone services in detached mode and waits for safe mode exit
+# First-time Start Ozone Services Script
+# This script formats SCM and OM and starts Ozone services in detached mode for the first time
 
 set -e
 
@@ -718,15 +718,15 @@ main() {
 
     # Start services in order (SCM first, then OM, then others)
     
-    # Step 1: Start SCM on specified hosts. Do not format SCM.
-    start_service_on_hosts "SCM" "$SCM_HOSTS" "start_scm" "none"
+    # Step 1: Start SCM on specified hosts (SCM must start before formatting OM)
+    start_service_on_hosts "SCM" "$SCM_HOSTS" "start_scm" "format_scm"
     
     # Wait for SCM to start
     log "Waiting for SCM to start..."
     sleep 15
 
-    # Step 2: Start OM on specified hosts. Do not format OM.
-    start_service_on_hosts "OM" "$OM_HOSTS" "start_om" "none"
+    # Step 2: Start OM on specified hosts (after SCM is running)
+    start_service_on_hosts "OM" "$OM_HOSTS" "start_om" "format_om"
     
     # Wait for OM to start
     log "Waiting for OM to start..."

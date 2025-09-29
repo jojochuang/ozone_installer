@@ -383,7 +383,7 @@ start_ozone_services() {
     echo "Starting Ozone services..."
     
     # Run the start services script with the appropriate config
-    CONFIG_FILE="$CONFIG_FILE" ./start_ozone_services.sh
+    CONFIG_FILE="$CONFIG_FILE" ./first_time_start_ozone_services.sh
     
     if [[ $? -eq 0 ]]; then
         echo "Ozone services started successfully"
@@ -414,7 +414,7 @@ show_connection_info() {
     echo
     echo "Manual Installation (if needed):"
     echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
-    echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
+    echo "  CONFIG_FILE=multi-host.conf ./first_time_start_ozone_services.sh"
     echo
     echo "Container Details:"
     echo "  OM Containers: om1 (port 2222), om2 (port 2223), om3 (port 2224)"
@@ -511,7 +511,7 @@ main() {
                 echo "Automatic Ozone installation skipped (AUTO_INSTALL_OZONE=false)"
                 echo "To install Ozone manually, run:"
                 echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
-                echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
+                echo "  CONFIG_FILE=multi-host.conf ./first_time_start_ozone_services.sh"
             fi
             
             show_connection_info
@@ -561,7 +561,7 @@ main() {
             echo ""
             echo "Manual installation (if AUTO_INSTALL_OZONE=false):"
             echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
-            echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
+            echo "  CONFIG_FILE=multi-host.conf ./first_time_start_ozone_services.sh"
             exit 1
             ;;
     esac

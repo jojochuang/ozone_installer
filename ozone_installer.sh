@@ -1330,7 +1330,7 @@ main() {
     log "Ozone Installer completed successfully"
     log "Next steps:"
     log "1. Run ./generate_configurations.sh to create Ozone configuration files"
-    log "2. Run ./start_ozone_services.sh to start Ozone services"
+    log "2. Run ./first_time_start_ozone_services.sh to format and start Ozone services for the first time"
 
     if [[ "$(echo "$INSTALL_PROMETHEUS" | tr '[:upper:]' '[:lower:]')" == "true" ]] || [[ "$(echo "$INSTALL_GRAFANA" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
         log ""

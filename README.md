@@ -20,7 +20,8 @@ This installer provides automated setup and configuration for Apache Ozone clust
 - `ozone_installer.conf` - Configuration file with cluster and path settings
 - `ozone_installer.sh` - Main installer script
 - `generate_configurations.sh` - Standalone script for generating Ozone configuration files
-- `start_ozone_services.sh` - Script to start Ozone services and wait for safe mode exit
+- `first_time_start_ozone_services.sh` - Script to format and start Ozone services for the first time
+- `start_ozone_services.sh` - Script to start Ozone services without formatting
 
 ## Prerequisites
 
@@ -103,13 +104,38 @@ This will:
 - Download and install Ozone on all hosts
 - Generate and distribute Ozone configuration files
 
-### 2. Start Ozone services (with distributed deployment):
+### 2. Generate configuration files:
+```bash
+./generate_configurations.sh
+```
+
+Creates and distributes:
+- `core-site.xml`
+- `ozone-site.xml`
+- `log4j.properties`
+
+### 3. Start Ozone services (first time - with distributed deployment):
+```bash
+./first_time_start_ozone_services.sh
+```
+
+This will:
+- **Distribute services across specified hosts** based on configuration
+- Format SCM and OM (first time only)
+- Start SCM on configured SCM_HOSTS
+- Start OM on configured OM_HOSTS
+- Start DataNodes on configured DATANODE_HOSTS
+- Start additional services (Recon, S3Gateway, HttpFS) on their respective hosts
+- Wait for cluster initialization and safe mode exit
+- Display service URLs for all deployed services
+
+### 4. Start Ozone services (normal execution):
 ```bash
 ./start_ozone_services.sh
 ```
 
 This will:
-- **Distribute services across specified hosts** based on configuration
+- **Start services across specified hosts** based on configuration (no formatting)
 - Start SCM on configured SCM_HOSTS
 - Start OM on configured OM_HOSTS
 - Start DataNodes on configured DATANODE_HOSTS
@@ -133,10 +159,6 @@ Service URLs:
     http://node2.example.com:9882
     http://node3.example.com:9882
 ```
-- Download and install Apache Ozone binary
-- Install Prometheus and Grafana (if enabled in configuration)
-
-- **Download Ozone binary once and distribute to all hosts** (scalable for large clusters)
 
 ### Scalability Features
 
@@ -159,27 +181,6 @@ Run the included test script to see the scalability improvements in action:
 ```
 
 This demonstrates how the new approach reduces external downloads from N (number of hosts) to 1.
-
-### 2. Generate configuration files:
-```bash
-./generate_configurations.sh
-```
-
-Creates and distributes:
-- `core-site.xml`
-- `ozone-site.xml`
-- `log4j.properties`
-
-### 3. Start Ozone services:
-```bash
-./start_ozone_services.sh
-```
-
-This will:
-- Format SCM and OM (if needed)
-- Start all Ozone services in detached mode
-- Wait for the cluster to exit safe mode
-- Display service status and web UI URLs
 
 ## System Requirements
 

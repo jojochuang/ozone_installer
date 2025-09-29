@@ -654,6 +654,7 @@ validate_hosts_parallel() {
     local pids=()
     local active_validations=0
     local failed_hosts=()
+    local completed_count=0
 
     for host in "${hosts[@]}"; do
         host=$(echo "$host" | xargs)
@@ -667,6 +668,7 @@ validate_hosts_parallel() {
                     local wait_result=$?
                     if [[ $wait_result -eq 0 ]]; then
                         info "Host validation completed successfully"
+                        ((completed_count++))
                     else
                         warn "Host validation failed for one host"
                     fi
@@ -706,23 +708,20 @@ validate_hosts_parallel() {
     done
 
     # Wait for all remaining validations to complete
-    local success_count=0
-    local failed_hosts=()
-
     for pid in "${pids[@]}"; do
         if [[ -n "$pid" ]]; then
             wait "$pid"
             local wait_result=$?
             if [[ $wait_result -eq 0 ]]; then
-                ((success_count++))
+                ((completed_count++))
             fi
         fi
     done
 
     # Determine which hosts failed by checking the results
-    info "Parallel host validations completed: $success_count/${#hosts[@]} successful"
+    info "Parallel host validations completed: $completed_count/${#hosts[@]} successful"
 
-    if [[ $success_count -ne ${#hosts[@]} ]]; then
+    if [[ $completed_count -ne ${#hosts[@]} ]]; then
         error "Host validation failed for some hosts"
         return 1
     fi

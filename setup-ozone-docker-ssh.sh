@@ -408,7 +408,7 @@ show_connection_info() {
     echo "  ssh client"
     echo
     echo "Using ozone_installer.sh with containers:"
-    echo "  If AUTO_INSTALL_OZONE=true (default), Ozone services should be running"
+    echo "  If AUTO_INSTALL_OZONE=true, Ozone services should be running (default: false)"
     echo "  Check service status: ssh <container> 'ps aux | grep -i ozone | grep -v grep'"
     echo "  Check logs: ssh <container> 'ls -la /var/log/hadoop/'"
     echo
@@ -490,10 +490,10 @@ main() {
             test_container_access
             
             # Check if we should automatically install and start Ozone
-            if [[ "${AUTO_INSTALL_OZONE:-true}" == "true" ]]; then
+            if [[ "${AUTO_INSTALL_OZONE:-false}" == "true" ]]; then
                 echo ""
                 echo "Installing and starting Ozone services automatically..."
-                echo "To skip this step in the future, set AUTO_INSTALL_OZONE=false"
+                echo "To disable this step in the future, set AUTO_INSTALL_OZONE=false (or omit the variable)"
                 echo ""
                 
                 install_ozone
@@ -508,7 +508,8 @@ main() {
                 fi
             else
                 echo ""
-                echo "Automatic Ozone installation skipped (AUTO_INSTALL_OZONE=false)"
+                echo "Automatic Ozone installation skipped (default behavior)"
+                echo "To enable automatic installation, set AUTO_INSTALL_OZONE=true"
                 echo "To install Ozone manually, run:"
                 echo "  CONFIG_FILE=multi-host.conf ./ozone_installer.sh"
                 echo "  CONFIG_FILE=multi-host.conf ./start_ozone_services.sh"
@@ -552,7 +553,7 @@ main() {
             echo "  info                - Show connection information"
             echo ""
             echo "Environment Variables:"
-            echo "  AUTO_INSTALL_OZONE  - Set to 'false' to skip automatic Ozone installation (default: true)"
+            echo "  AUTO_INSTALL_OZONE  - Set to 'true' to enable automatic Ozone installation (default: false)"
             echo "  CONFIG_FILE         - Override config file (default: multi-host.conf)"
             echo ""
             echo "Available containers for connect command:"

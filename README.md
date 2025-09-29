@@ -359,7 +359,7 @@ CONFIG_FILE=single-host.conf ./ozone_installer.sh
 Use `setup-ozone-docker-ssh.sh` for multi-container cluster with SSH access:
 
 ```bash
-# Start cluster with SSH access (automatically installs and starts Ozone)
+# Start cluster with SSH access (manual Ozone installation by default)
 ./setup-ozone-docker-ssh.sh start
 
 # SSH to containers as if they were remote hosts
@@ -367,16 +367,16 @@ ssh om1
 ssh scm1
 ssh datanode1
 
-# Check that Ozone services are running
+# Manual installation (default behavior)
+CONFIG_FILE=multi-host.conf ./ozone_installer.sh
+CONFIG_FILE=multi-host.conf ./start_ozone_services.sh
+
+# Check that Ozone services are running after manual installation
 ssh om1 'ps aux | grep -i ozone | grep -v grep'
 ssh scm1 'ps aux | grep -i ozone | grep -v grep' 
 
-# Optional: Skip automatic installation
-AUTO_INSTALL_OZONE=false ./setup-ozone-docker-ssh.sh start
-
-# Manual installation (if AUTO_INSTALL_OZONE=false)
-CONFIG_FILE=multi-host.conf ./ozone_installer.sh
-CONFIG_FILE=multi-host.conf ./start_ozone_services.sh
+# Optional: Enable automatic installation
+AUTO_INSTALL_OZONE=true ./setup-ozone-docker-ssh.sh start
 ```
 
 The multi-host approach creates a 14-container setup:

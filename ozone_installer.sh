@@ -358,7 +358,7 @@ ask_jdk_version() {
         # Validate configured JDK version
         case "$JDK_VERSION" in
             8|11|17|21)
-                info "Using configured JDK version: $JDK_VERSION"
+                info "Using configured JDK version: $JDK_VERSION" >&2
                 echo "$JDK_VERSION"
                 return
                 ;;

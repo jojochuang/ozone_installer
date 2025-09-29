@@ -199,16 +199,41 @@ test_host_info() {
 test_service_management() {
     echo "Testing service management functions..."
 
-    run_test "SCM format function exists" \
-        "grep -q 'format_scm()' $PROJECT_DIR/start_ozone_services.sh" \
+    # Test format functions exist in first_time_start script (not regular start script)
+    run_test "SCM format function exists in first_time_start script" \
+        "grep -q 'format_scm()' $PROJECT_DIR/first_time_start_ozone_services.sh" \
         0
 
-    run_test "OM format function exists" \
-        "grep -q 'format_om()' $PROJECT_DIR/start_ozone_services.sh" \
+    run_test "OM format function exists in first_time_start script" \
+        "grep -q 'format_om()' $PROJECT_DIR/first_time_start_ozone_services.sh" \
         0
 
-    run_test "Service start functions exist" \
-        "grep -q 'start.*ozone\|format.*scm\|format.*om' $PROJECT_DIR/start_ozone_services.sh" \
+    # Test service start functions exist
+    run_test "Service start functions exist in start script" \
+        "grep -q 'start_scm()\|start_om()\|start_datanode()' $PROJECT_DIR/start_ozone_services.sh" \
+        0
+
+    # Test stop script exists and has proper structure
+    run_test "Stop script exists" \
+        "test -f $PROJECT_DIR/stop_ozone_services.sh" \
+        0
+
+    run_test "Stop script is executable" \
+        "test -x $PROJECT_DIR/stop_ozone_services.sh" \
+        0
+
+    # Test service stop functions exist
+    run_test "Service stop functions exist in stop script" \
+        "grep -q 'stop_scm()\|stop_om()\|stop_datanode()' $PROJECT_DIR/stop_ozone_services.sh" \
+        0
+
+    run_test "Stop script has usage function" \
+        "grep -q 'show_usage()' $PROJECT_DIR/stop_ozone_services.sh" \
+        0
+
+    # Test stop script handles arguments properly
+    run_test "Stop script shows help with --help" \
+        "$PROJECT_DIR/stop_ozone_services.sh --help | grep -q 'Usage:'" \
         0
 }
 

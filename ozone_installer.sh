@@ -626,6 +626,93 @@ download_ozone_centrally() {
     return 1
 }
 
+# Function to validate SSH connections and gather host information in parallel
+validate_hosts_parallel() {
+    local hosts=("$@")
+    local max_concurrent=${MAX_CONCURRENT_TRANSFERS:-10}
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Validating SSH connections and gathering host information for ${#hosts[@]} hosts (max $max_concurrent concurrent validations)..."
+
+    local pids=()
+    local active_validations=0
+    local failed_hosts=()
+
+    for host in "${hosts[@]}"; do
+        host=$(echo "$host" | xargs)
+
+        # Wait if we've reached the maximum concurrent validations
+        while [[ $active_validations -ge $max_concurrent ]]; do
+            # Check for completed validations
+            for i in "${!pids[@]}"; do
+                if ! kill -0 "${pids[$i]}" 2>/dev/null; then
+                    wait "${pids[$i]}"
+                    local wait_result=$?
+                    if [[ $wait_result -eq 0 ]]; then
+                        info "Host validation completed successfully"
+                    else
+                        warn "Host validation failed for one host"
+                    fi
+                    unset pids["$i"]
+                    ((active_validations--))
+                fi
+            done
+            sleep 1
+        done
+
+        # Start validation for this host in background
+        (
+            # Validate SSH connection
+            if ! validate_ssh_connection "$host"; then
+                echo "FAILED:$host:ssh_connection"
+                exit 1
+            fi
+
+            # Get host information
+            if ! get_host_info "$host"; then
+                echo "FAILED:$host:host_info"
+                exit 1
+            fi
+
+            # Check sudo privileges
+            if ! check_sudo_privileges "$host"; then
+                echo "FAILED:$host:sudo_privileges"
+                exit 1
+            fi
+
+            echo "SUCCESS:$host"
+        ) &
+
+        pids+=($!)
+        ((active_validations++))
+        info "Started validation for $host (PID: $!)"
+    done
+
+    # Wait for all remaining validations to complete
+    local success_count=0
+    local failed_hosts=()
+
+    for pid in "${pids[@]}"; do
+        if [[ -n "$pid" ]]; then
+            wait "$pid"
+            local wait_result=$?
+            if [[ $wait_result -eq 0 ]]; then
+                ((success_count++))
+            fi
+        fi
+    done
+
+    # Determine which hosts failed by checking the results
+    info "Parallel host validations completed: $success_count/${#hosts[@]} successful"
+
+    if [[ $success_count -ne ${#hosts[@]} ]]; then
+        error "Host validation failed for some hosts"
+        return 1
+    fi
+
+    return 0
+}
+
 # Function to transfer tarball to multiple hosts in parallel
 transfer_tarball_parallel() {
     local local_tarball_path=$1
@@ -1253,25 +1340,11 @@ main() {
 
     log "Found ${#HOSTS[@]} hosts to configure"
 
-    # Validate SSH connections and gather host information
-    log "Validating SSH connections and gathering host information..."
-    for host in "${HOSTS[@]}"; do
-        # Trim whitespace
-        host=$(echo "$host" | xargs)
-
-        if ! validate_ssh_connection "$host"; then
-            exit 1
-        fi
-
-        if ! get_host_info "$host"; then
-            exit 1
-        fi
-
-        # Check sudo privileges
-        if ! check_sudo_privileges "$host"; then
-            exit 1
-        fi
-    done
+    # Validate SSH connections and gather host information in parallel
+    if ! validate_hosts_parallel "${HOSTS[@]}"; then
+        error "SSH validation and host information gathering failed"
+        exit 1
+    fi
 
     # Ask for JDK version
     jdk_version=$(ask_jdk_version)

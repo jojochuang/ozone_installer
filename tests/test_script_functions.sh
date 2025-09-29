@@ -134,6 +134,18 @@ test_ssh_validation() {
     run_test "SSH validation checks private key file" \
         "grep -A10 'validate_ssh_connection()' $PROJECT_DIR/ozone_installer.sh | grep -q 'SSH private key file not found'" \
         0
+
+    run_test "Parallel SSH validation function exists" \
+        "grep -q 'validate_hosts_parallel()' $PROJECT_DIR/ozone_installer.sh" \
+        0
+
+    run_test "Parallel SSH validation uses MAX_CONCURRENT_TRANSFERS" \
+        "grep -A10 'validate_hosts_parallel()' $PROJECT_DIR/ozone_installer.sh | grep -q 'MAX_CONCURRENT_TRANSFERS'" \
+        0
+
+    run_test "Sequential SSH validation loop was replaced with parallel call" \
+        "grep -q 'validate_hosts_parallel.*HOSTS' $PROJECT_DIR/ozone_installer.sh" \
+        0
 }
 
 # Test parallel configuration functions

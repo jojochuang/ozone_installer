@@ -8,6 +8,10 @@ set -e
 # Configuration file path
 CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
+# Source utility functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/ozone_service_utils.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -55,42 +59,16 @@ check_ozone_installation() {
 
     info "Checking Ozone installation on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export PATH="$OZONE_HOME/bin:$PATH"
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf")
 
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
-            fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-        fi
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        $env_setup
 
-        # Check if ozone command is available
-        if command -v ozone >/dev/null 2>&1; then
-            echo "Ozone command found: $(which ozone)"
-            ozone version
-            exit 0
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            echo "Ozone found at: /opt/ozone/bin/ozone"
-            export OZONE_HOME=/opt/ozone
-            /opt/ozone/bin/ozone version
-            exit 0
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            echo "Ozone found at: /usr/local/ozone/bin/ozone"
-            export OZONE_HOME=/usr/local/ozone
-            /usr/local/ozone/bin/ozone version
-            exit 0
-        else
-            echo "ERROR: Ozone installation not found"
-            echo "Please install Ozone before running this script"
-            exit 1
-        fi
-    '
+        # Check if ozone command is available and show version
+        echo \"Ozone command found: \$OZONE_CMD\"
+        \$OZONE_CMD version
+    "
 }
 
 # Function to format SCM
@@ -117,35 +95,11 @@ format_scm() {
 
     info "Formatting SCM on $host with command: $scm_command"
 
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/scm")
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/scm
-        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
-
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=\$(which java)
-            if [[ -L \"\$java_bin\" ]]; then
-                java_bin=\$(readlink -f \"\$java_bin\")
-            fi
-            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD=\"ozone\"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/opt/ozone/bin/ozone\"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo \"ERROR: Ozone command not found\"
-            exit 1
-        fi
+        $env_setup
 
         # Ensure data directories exist with proper permissions before formatting
         echo \"Ensuring SCM data directories exist with proper permissions...\"
@@ -166,35 +120,11 @@ format_om() {
 
     info "Formatting OM on $host"
 
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/om")
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/om
-        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
-
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=\$(which java)
-            if [[ -L \"\$java_bin\" ]]; then
-                java_bin=\$(readlink -f \"\$java_bin\")
-            fi
-            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD=\"ozone\"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/opt/ozone/bin/ozone\"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo \"ERROR: Ozone command not found\"
-            exit 1
-        fi
+        $env_setup
 
         # Ensure data directories exist with proper permissions before formatting
         echo \"Ensuring OM data directories exist with proper permissions...\"
@@ -215,46 +145,22 @@ start_scm() {
 
     info "Starting SCM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/scm
-        export PATH="$OZONE_HOME/bin:$PATH"
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/scm")
 
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
-            fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo "ERROR: Ozone command not found"
-            exit 1
-        fi
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        $env_setup
 
         # Check if SCM is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
-            echo "SCM is already running"
+        if ps aux | grep -v grep | grep \"org.apache.hadoop.hdds.scm.server.StorageContainerManager\" >/dev/null; then
+            echo \"SCM is already running\"
         else
-            echo "Starting SCM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-            nohup $OZONE_CMD --daemon start scm > /tmp/scm.log 2>&1 &
+            echo \"Starting SCM in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+            nohup \$OZONE_CMD --daemon start scm > /tmp/scm.log 2>&1 &
             sleep 5
-            echo "SCM startup initiated"
+            echo \"SCM startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to start OM
@@ -264,46 +170,22 @@ start_om() {
 
     info "Starting OM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/om
-        export PATH="$OZONE_HOME/bin:$PATH"
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/om")
 
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
-            fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo "ERROR: Ozone command not found"
-            exit 1
-        fi
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        $env_setup
 
         # Check if OM is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
-            echo "OM is already running"
+        if ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.om.OzoneManager\" >/dev/null; then
+            echo \"OM is already running\"
         else
-            echo "Starting OM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
-            nohup $OZONE_CMD --daemon start om > /tmp/om.log 2>&1 &
+            echo \"Starting OM in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
+            nohup \$OZONE_CMD --daemon start om > /tmp/om.log 2>&1 &
             sleep 5
-            echo "OM startup initiated"
+            echo \"OM startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to start DataNode
@@ -313,35 +195,11 @@ start_datanode() {
 
     info "Starting DataNode on $host"
 
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/datanode")
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/datanode
-        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
-
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=\$(which java)
-            if [[ -L \"\$java_bin\" ]]; then
-                java_bin=\$(readlink -f \"\$java_bin\")
-            fi
-            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD=\"ozone\"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/opt/ozone/bin/ozone\"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo \"ERROR: Ozone command not found\"
-            exit 1
-        fi
+        $env_setup
 
         # Ensure data directories exist with proper permissions before starting
         echo \"Ensuring DataNode data directories exist with proper permissions...\"
@@ -368,35 +226,11 @@ start_recon() {
 
     info "Starting Recon on $host"
 
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf/recon")
+
     ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=/opt/ozone/conf/recon
-        export PATH=\"\$OZONE_HOME/bin:\$PATH\"
-
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=\$(which java)
-            if [[ -L \"\$java_bin\" ]]; then
-                java_bin=\$(readlink -f \"\$java_bin\")
-            fi
-            export JAVA_HOME=\$(dirname \"\$(dirname \"\$java_bin\")\")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD=\"ozone\"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/opt/ozone/bin/ozone\"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD=\"/usr/local/ozone/bin/ozone\"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo \"ERROR: Ozone command not found\"
-            exit 1
-        fi
+        $env_setup
 
         # Ensure data directories exist with proper permissions before starting
         echo \"Ensuring Recon data directories exist with proper permissions...\"
@@ -430,45 +264,22 @@ start_s3gateway() {
 
     info "Starting S3 Gateway on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export PATH="$OZONE_HOME/bin:$PATH"
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf")
 
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
-            fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo "ERROR: Ozone command not found"
-            exit 1
-        fi
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        $env_setup
 
         # Check if S3 Gateway is already running
-        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
-            echo "S3 Gateway is already running"
+        if pgrep -f \"org.apache.hadoop.ozone.s3.Gateway\" >/dev/null; then
+            echo \"S3 Gateway is already running\"
         else
-            echo "Starting S3 Gateway in background..."
-            nohup $OZONE_CMD --daemon start s3g > /tmp/s3gateway.log 2>&1 &
+            echo \"Starting S3 Gateway in background...\"
+            nohup \$OZONE_CMD --daemon start s3g > /tmp/s3gateway.log 2>&1 &
             sleep 5
-            echo "S3 Gateway startup initiated"
+            echo \"S3 Gateway startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to start HttpFS
@@ -478,45 +289,22 @@ start_httpfs() {
 
     info "Starting HttpFS on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Set up environment variables
-        export JAVA_HOME=/usr/lib/jvm/java
-        export OZONE_HOME=/opt/ozone
-        export PATH="$OZONE_HOME/bin:$PATH"
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf")
 
-        # Find and use the actual JAVA_HOME if java is installed
-        if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
-            fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-        fi
-
-        # Find ozone binary and set OZONE_HOME accordingly
-        if command -v ozone >/dev/null 2>&1; then
-            OZONE_CMD="ozone"
-        elif [[ -f /opt/ozone/bin/ozone ]]; then
-            OZONE_CMD="/opt/ozone/bin/ozone"
-            export OZONE_HOME=/opt/ozone
-        elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-            OZONE_CMD="/usr/local/ozone/bin/ozone"
-            export OZONE_HOME=/usr/local/ozone
-        else
-            echo "ERROR: Ozone command not found"
-            exit 1
-        fi
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" "
+        $env_setup
 
         # Check if HttpFS is already running
-        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
-            echo "HttpFS is already running"
+        if pgrep -f \"org.apache.hadoop.fs.http.server.HttpFSServerWebApp\" >/dev/null; then
+            echo \"HttpFS is already running\"
         else
-            echo "Starting HttpFS in background..."
-            nohup $OZONE_CMD --daemon start httpfs > /tmp/httpfs.log 2>&1 &
+            echo \"Starting HttpFS in background...\"
+            nohup \$OZONE_CMD --daemon start httpfs > /tmp/httpfs.log 2>&1 &
             sleep 5
-            echo "HttpFS startup initiated"
+            echo \"HttpFS startup initiated\"
         fi
-    '
+    "
 }
 
 # Function to wait for safe mode exit
@@ -528,42 +316,19 @@ wait_for_safe_mode_exit() {
 
     info "Waiting for Ozone to exit safe mode on $primary_host"
 
+    local env_setup
+    env_setup=$(generate_ozone_env_setup "/opt/ozone/conf")
+
     while [[ $attempt -lt $max_attempts ]]; do
         log "Checking safe mode status (attempt $((attempt + 1))/$max_attempts)..."
 
         # Check safe mode status
-        safe_mode_result=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$primary_host" '
-            # Set up environment variables
-            export JAVA_HOME=/usr/lib/jvm/java
-            export OZONE_HOME=/opt/ozone
-            export PATH="$OZONE_HOME/bin:$PATH"
-
-            # Find and use the actual JAVA_HOME if java is installed
-            if command -v java >/dev/null 2>&1; then
-                java_bin=$(which java)
-                if [[ -L "$java_bin" ]]; then
-                    java_bin=$(readlink -f "$java_bin")
-                fi
-                export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
-            fi
-
-            # Find ozone binary and set OZONE_HOME accordingly
-            if command -v ozone >/dev/null 2>&1; then
-                OZONE_CMD="ozone"
-            elif [[ -f /opt/ozone/bin/ozone ]]; then
-                OZONE_CMD="/opt/ozone/bin/ozone"
-                export OZONE_HOME=/opt/ozone
-            elif [[ -f /usr/local/ozone/bin/ozone ]]; then
-                OZONE_CMD="/usr/local/ozone/bin/ozone"
-                export OZONE_HOME=/usr/local/ozone
-            else
-                echo "ERROR: Ozone command not found"
-                exit 1
-            fi
+        safe_mode_result=$(ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$primary_host" "
+            $env_setup
 
             # Check safe mode
-            $OZONE_CMD admin safemode status 2>/dev/null || echo "FAILED"
-        ' 2>/dev/null || echo "FAILED")
+            \$OZONE_CMD admin safemode status 2>/dev/null || echo \"FAILED\"
+        " 2>/dev/null || echo "FAILED")
 
         if [[ "$safe_mode_result" == *"OFF"* ]] || [[ "$safe_mode_result" == *"exited"* ]] || [[ "$safe_mode_result" == *"out of safe mode"* ]]; then
             log "Ozone has successfully exited safe mode!"

@@ -540,6 +540,70 @@ install_jdk() {
     "
 }
 
+# Function to install system dependencies including ncurses (provides tput command)
+install_system_dependencies() {
+    local host=$1
+    local ssh_key_expanded="${SSH_PRIVATE_KEY_FILE/#\~/$HOME}"
+
+    info "Installing system dependencies (ncurses for tput) on $host"
+
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+        # Detect package manager
+        if command -v yum >/dev/null 2>&1; then
+            PKG_MGR="yum"
+        elif command -v dnf >/dev/null 2>&1; then
+            PKG_MGR="dnf"
+        elif command -v apt-get >/dev/null 2>&1; then
+            PKG_MGR="apt-get"
+        elif command -v zypper >/dev/null 2>&1; then
+            PKG_MGR="zypper"
+        else
+            echo "No supported package manager found"
+            exit 1
+        fi
+
+        # Install ncurses package based on package manager
+        case $PKG_MGR in
+            "yum"|"dnf")
+                # On RHEL/CentOS/Rocky, ncurses is usually already installed as part of base system
+                # Install ncurses if not present
+                if ! command -v tput >/dev/null 2>&1; then
+                    echo "Installing ncurses..."
+                    sudo $PKG_MGR install -y ncurses
+                else
+                    echo "tput command already available"
+                fi
+                ;;
+            "apt-get")
+                # On Ubuntu/Debian, need ncurses-bin package
+                if ! command -v tput >/dev/null 2>&1; then
+                    echo "Installing ncurses-bin..."
+                    sudo $PKG_MGR install -y ncurses-bin
+                else
+                    echo "tput command already available"
+                fi
+                ;;
+            "zypper")
+                # On SUSE, need ncurses-utils package
+                if ! command -v tput >/dev/null 2>&1; then
+                    echo "Installing ncurses-utils..."
+                    sudo zypper install -y ncurses-utils
+                else
+                    echo "tput command already available"
+                fi
+                ;;
+        esac
+
+        # Verify tput is now available
+        if command -v tput >/dev/null 2>&1; then
+            echo "tput command is available"
+        else
+            echo "Warning: tput command still not available after installation attempt"
+            # Don'\''t fail as this is not critical - just a warning
+        fi
+    '
+}
+
 # Function to install and configure chrony/ntpd
 install_time_sync() {
     local host=$1
@@ -918,6 +982,12 @@ configure_hosts_parallel() {
             # Install JDK
             if ! install_jdk "$host" "$jdk_version"; then
                 echo "FAILED:$host:jdk"
+                exit 1
+            fi
+
+            # Install system dependencies (including ncurses for tput)
+            if ! install_system_dependencies "$host"; then
+                echo "FAILED:$host:system_dependencies"
                 exit 1
             fi
 

@@ -7,6 +7,12 @@
 
 set -e
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source process management utilities
+source "${SCRIPT_DIR}/ozone_process_utils.sh"
+
 # Configuration file path
 CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
@@ -74,20 +80,38 @@ stop_scm() {
 
     info "Stopping SCM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find SCM process and stop it
-        scm_pids=$(ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" | awk "{print \$2}")
-        if [[ -n "$scm_pids" ]]; then
-            echo "Found SCM processes: $scm_pids"
-            for pid in $scm_pids; do
-                echo "Stopping SCM process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "SCM stopped successfully"
-        else
-            echo "SCM is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop SCM
+        stop_process_by_class "org.apache.hadoop.hdds.scm.server.StorageContainerManager" "SCM"
+ENDSSH
 }
 
 # Function to stop OM
@@ -97,20 +121,38 @@ stop_om() {
 
     info "Stopping OM on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find OM process and stop it
-        om_pids=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" | awk "{print \$2}")
-        if [[ -n "$om_pids" ]]; then
-            echo "Found OM processes: $om_pids"
-            for pid in $om_pids; do
-                echo "Stopping OM process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "OM stopped successfully"
-        else
-            echo "OM is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop OM
+        stop_process_by_class "org.apache.hadoop.ozone.om.OzoneManager" "OM"
+ENDSSH
 }
 
 # Function to stop DataNode
@@ -120,20 +162,38 @@ stop_datanode() {
 
     info "Stopping DataNode on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find DataNode process and stop it
-        datanode_pids=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" | awk "{print \$2}")
-        if [[ -n "$datanode_pids" ]]; then
-            echo "Found DataNode processes: $datanode_pids"
-            for pid in $datanode_pids; do
-                echo "Stopping DataNode process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "DataNode stopped successfully"
-        else
-            echo "DataNode is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop DataNode
+        stop_process_by_class "org.apache.hadoop.ozone.HddsDatanodeService" "DataNode"
+ENDSSH
 }
 
 # Function to stop Recon
@@ -143,20 +203,38 @@ stop_recon() {
 
     info "Stopping Recon on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find Recon process and stop it
-        recon_pids=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" | awk "{print \$2}")
-        if [[ -n "$recon_pids" ]]; then
-            echo "Found Recon processes: $recon_pids"
-            for pid in $recon_pids; do
-                echo "Stopping Recon process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "Recon stopped successfully"
-        else
-            echo "Recon is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop Recon
+        stop_process_by_class "org.apache.hadoop.ozone.recon.ReconServer" "Recon"
+ENDSSH
 }
 
 # Function to stop S3 Gateway
@@ -166,20 +244,38 @@ stop_s3gateway() {
 
     info "Stopping S3 Gateway on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find S3 Gateway process and stop it
-        s3gateway_pids=$(pgrep -f "org.apache.hadoop.ozone.s3.Gateway")
-        if [[ -n "$s3gateway_pids" ]]; then
-            echo "Found S3 Gateway processes: $s3gateway_pids"
-            for pid in $s3gateway_pids; do
-                echo "Stopping S3 Gateway process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "S3 Gateway stopped successfully"
-        else
-            echo "S3 Gateway is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop S3 Gateway
+        stop_process_by_class "org.apache.hadoop.ozone.s3.Gateway" "S3 Gateway"
+ENDSSH
 }
 
 # Function to stop HttpFS
@@ -189,20 +285,38 @@ stop_httpfs() {
 
     info "Stopping HttpFS on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
-        # Find HttpFS process and stop it
-        httpfs_pids=$(pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp")
-        if [[ -n "$httpfs_pids" ]]; then
-            echo "Found HttpFS processes: $httpfs_pids"
-            for pid in $httpfs_pids; do
-                echo "Stopping HttpFS process $pid..."
-                kill -TERM "$pid" || kill -KILL "$pid"
-            done
-            echo "HttpFS stopped successfully"
-        else
-            echo "HttpFS is not running"
-        fi
-    '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
+        # Source process utilities (inline for remote execution)
+        find_process_by_class() {
+            local class_name="$1"
+            local pids=""
+            if command -v ps >/dev/null 2>&1; then
+                pids=$(ps aux | grep -v grep | grep "$class_name" | awk '{print $2}')
+            else
+                pids=$(grep -l "$class_name" /proc/*/cmdline 2>/dev/null | sed 's/[^0-9]//g')
+            fi
+            echo "$pids"
+        }
+
+        stop_process_by_class() {
+            local class_name="$1"
+            local service_name="${2:-Service}"
+            local pids=$(find_process_by_class "$class_name")
+            if [[ -n "$pids" ]]; then
+                echo "Found $service_name processes: $pids"
+                for pid in $pids; do
+                    echo "Stopping $service_name process $pid..."
+                    kill -TERM "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+                done
+                echo "$service_name stopped successfully"
+            else
+                echo "$service_name is not running"
+            fi
+        }
+
+        # Stop HttpFS
+        stop_process_by_class "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" "HttpFS"
+ENDSSH
 }
 
 # Function to stop all services on a specific host

@@ -5,6 +5,12 @@
 
 set -e
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source process management utilities
+source "${SCRIPT_DIR}/ozone_process_utils.sh"
+
 # Configuration file path
 CONFIG_FILE="${CONFIG_FILE:-$(dirname "$0")/multi-host.conf}"
 
@@ -131,8 +137,15 @@ start_scm() {
             exit 1
         fi
 
-        # Check if SCM is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null; then
+        # Check if SCM is already running (with fallback for Docker)
+        is_running=false
+        if command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" >/dev/null && is_running=true
+        elif grep -l "org.apache.hadoop.hdds.scm.server.StorageContainerManager" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if $is_running; then
             echo "SCM is already running"
         else
             echo "Starting SCM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
@@ -180,8 +193,15 @@ start_om() {
             exit 1
         fi
 
-        # Check if OM is already running
-        if ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null; then
+        # Check if OM is already running (with fallback for Docker)
+        is_running=false
+        if command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" >/dev/null && is_running=true
+        elif grep -l "org.apache.hadoop.ozone.om.OzoneManager" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if $is_running; then
             echo "OM is already running"
         else
             echo "Starting OM in background with OZONE_CONF_DIR=$OZONE_CONF_DIR..."
@@ -235,8 +255,15 @@ start_datanode() {
         sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_SCM_DATANODE_ID_DIR\" \"$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR\" \"$HDDS_DATANODE_DIR\" \"$OZONE_DATANODE_METADATA_DIRS\"
         sudo chmod -R 750 \"$OZONE_SCM_DATANODE_ID_DIR\" \"$DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR\" \"$HDDS_DATANODE_DIR\" \"$OZONE_DATANODE_METADATA_DIRS\"
 
-        # Check if DataNode is already running
-        if ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.HddsDatanodeService\" >/dev/null; then
+        # Check if DataNode is already running (with fallback for Docker)
+        is_running=false
+        if command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.HddsDatanodeService\" >/dev/null && is_running=true
+        elif grep -l \"org.apache.hadoop.ozone.HddsDatanodeService\" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if \$is_running; then
             echo \"DataNode is already running\"
         else
             echo \"Starting DataNode in background with OZONE_CONF_DIR=\$OZONE_CONF_DIR...\"
@@ -290,8 +317,15 @@ start_recon() {
         sudo chown -R \$(whoami):\$(id -gn) \"$OZONE_RECON_DB_DIR\" \"$OZONE_RECON_SCM_DB_DIRS\" \"$OZONE_RECON_OM_DB_DIR\" \"$OZONE_RECON_METADATA_DIRS\"
         sudo chmod -R 750 \"$OZONE_RECON_DB_DIR\" \"$OZONE_RECON_SCM_DB_DIRS\" \"$OZONE_RECON_OM_DB_DIR\" \"$OZONE_RECON_METADATA_DIRS\"
 
-        # Check if Recon is already running
-        if ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.recon.ReconServer\" >/dev/null; then
+        # Check if Recon is already running (with fallback for Docker)
+        is_running=false
+        if command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep \"org.apache.hadoop.ozone.recon.ReconServer\" >/dev/null && is_running=true
+        elif grep -l \"org.apache.hadoop.ozone.recon.ReconServer\" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if \$is_running; then
             echo \"Recon is already running\"
         else
             # Ensure Recon directories exist with proper permissions
@@ -345,8 +379,17 @@ start_s3gateway() {
             exit 1
         fi
 
-        # Check if S3 Gateway is already running
-        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
+        # Check if S3 Gateway is already running (with fallback for Docker)
+        is_running=false
+        if command -v pgrep >/dev/null 2>&1; then
+            pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null && is_running=true
+        elif command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep "org.apache.hadoop.ozone.s3.Gateway" >/dev/null && is_running=true
+        elif grep -l "org.apache.hadoop.ozone.s3.Gateway" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if $is_running; then
             echo "S3 Gateway is already running"
         else
             echo "Starting S3 Gateway in background..."
@@ -393,8 +436,17 @@ start_httpfs() {
             exit 1
         fi
 
-        # Check if HttpFS is already running
-        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
+        # Check if HttpFS is already running (with fallback for Docker)
+        is_running=false
+        if command -v pgrep >/dev/null 2>&1; then
+            pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null && is_running=true
+        elif command -v ps >/dev/null 2>&1; then
+            ps aux | grep -v grep | grep "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null && is_running=true
+        elif grep -l "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" /proc/*/cmdline 2>/dev/null | head -1 >/dev/null; then
+            is_running=true
+        fi
+
+        if $is_running; then
             echo "HttpFS is already running"
         else
             echo "Starting HttpFS in background..."
@@ -476,49 +528,63 @@ check_service_status() {
 
     info "Checking service status on $host"
 
-    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" '
+    ssh -i "$ssh_key_expanded" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$host" 'bash -s' <<'ENDSSH'
         echo "Checking running Ozone processes:"
 
-        scm_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.hdds.scm.server.StorageContainerManager" | awk "{print \$2}" | head -1)
+        # Helper function to find PIDs (with Docker fallback)
+        find_pid() {
+            local class="$1"
+            local pid=""
+            if command -v ps >/dev/null 2>&1; then
+                pid=$(ps aux | grep -v grep | grep "$class" | awk '{print $2}' | head -1)
+            else
+                pid=$(grep -l "$class" /proc/*/cmdline 2>/dev/null | head -1 | sed 's/[^0-9]//g')
+            fi
+            echo "$pid"
+        }
+
+        scm_pid=$(find_pid "org.apache.hadoop.hdds.scm.server.StorageContainerManager")
         if [[ -n "$scm_pid" ]]; then
             echo "  ✓ SCM is running (PID: $scm_pid)"
         else
             echo "  ✗ SCM is not running"
         fi
 
-        om_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.om.OzoneManager" | awk "{print \$2}" | head -1)
+        om_pid=$(find_pid "org.apache.hadoop.ozone.om.OzoneManager")
         if [[ -n "$om_pid" ]]; then
             echo "  ✓ OM is running (PID: $om_pid)"
         else
             echo "  ✗ OM is not running"
         fi
 
-        datanode_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.HddsDatanodeService" | awk "{print \$2}" | head -1)
+        datanode_pid=$(find_pid "org.apache.hadoop.ozone.HddsDatanodeService")
         if [[ -n "$datanode_pid" ]]; then
             echo "  ✓ DataNode is running (PID: $datanode_pid)"
         else
             echo "  ✗ DataNode is not running"
         fi
 
-        recon_pid=$(ps aux | grep -v grep | grep "org.apache.hadoop.ozone.recon.ReconServer" | awk "{print \$2}" | head -1)
+        recon_pid=$(find_pid "org.apache.hadoop.ozone.recon.ReconServer")
         if [[ -n "$recon_pid" ]]; then
             echo "  ✓ Recon is running (PID: $recon_pid)"
         else
             echo "  ✗ Recon is not running"
         fi
 
-        if pgrep -f "org.apache.hadoop.ozone.s3.Gateway" >/dev/null; then
-            echo "  ✓ S3 Gateway is running (PID: $(pgrep -f "org.apache.hadoop.ozone.s3.Gateway"))"
+        s3g_pid=$(find_pid "org.apache.hadoop.ozone.s3.Gateway")
+        if [[ -n "$s3g_pid" ]]; then
+            echo "  ✓ S3 Gateway is running (PID: $s3g_pid)"
         else
             echo "  ✗ S3 Gateway is not running"
         fi
 
-        if pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp" >/dev/null; then
-            echo "  ✓ HttpFS is running (PID: $(pgrep -f "org.apache.hadoop.fs.http.server.HttpFSServerWebApp"))"
+        httpfs_pid=$(find_pid "org.apache.hadoop.fs.http.server.HttpFSServerWebApp")
+        if [[ -n "$httpfs_pid" ]]; then
+            echo "  ✓ HttpFS is running (PID: $httpfs_pid)"
         else
             echo "  ✗ HttpFS is not running"
         fi
-    '
+ENDSSH
 }
 
 # Function to validate service host configurations

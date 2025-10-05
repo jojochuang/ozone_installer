@@ -11,20 +11,20 @@
 generate_ozone_env_setup() {
     local conf_dir="${1:-/opt/ozone/conf}"
     
-    cat << 'EOF_ENV'
+    cat << EOF_ENV
         # Set up environment variables
         export JAVA_HOME=/usr/lib/jvm/java
         export OZONE_HOME=/opt/ozone
-        export OZONE_CONF_DIR=CONF_DIR_PLACEHOLDER
-        export PATH="$OZONE_HOME/bin:$PATH"
+        export OZONE_CONF_DIR=$conf_dir
+        export PATH="\$OZONE_HOME/bin:\$PATH"
 
         # Find and use the actual JAVA_HOME if java is installed
         if command -v java >/dev/null 2>&1; then
-            java_bin=$(which java)
-            if [[ -L "$java_bin" ]]; then
-                java_bin=$(readlink -f "$java_bin")
+            java_bin=\$(which java)
+            if [[ -L "\$java_bin" ]]; then
+                java_bin=\$(readlink -f "\$java_bin")
             fi
-            export JAVA_HOME=$(dirname "$(dirname "$java_bin")")
+            export JAVA_HOME=\$(dirname "\$(dirname "\$java_bin")")
         fi
 
         # Find ozone binary and set OZONE_HOME accordingly
@@ -41,8 +41,6 @@ generate_ozone_env_setup() {
             exit 1
         fi
 EOF_ENV
-    # Replace placeholder with actual conf_dir
-    sed "s|CONF_DIR_PLACEHOLDER|$conf_dir|g"
 }
 
 # Function to execute a command on a remote host with Ozone environment setup

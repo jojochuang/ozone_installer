@@ -453,23 +453,23 @@ All services run on standard ports within the Docker network. Access containers 
 **SSH Access (setup-ozone-docker-ssh.sh):**
 Containers are accessible via SSH on unique host ports:
 
-| Service | Container Name | SSH Port | Access Method |
-|---------|----------------|----------|---------------|
-| OM1     | ozone-om1      | 2222     | `ssh om1` or `ssh -p 2222 rocky@localhost` |
-| OM2     | ozone-om2      | 2223     | `ssh om2` or `ssh -p 2223 rocky@localhost` |
-| OM3     | ozone-om3      | 2224     | `ssh om3` or `ssh -p 2224 rocky@localhost` |
-| SCM1    | ozone-scm1     | 2225     | `ssh scm1` or `ssh -p 2225 rocky@localhost` |
-| SCM2    | ozone-scm2     | 2226     | `ssh scm2` or `ssh -p 2226 rocky@localhost` |
-| SCM3    | ozone-scm3     | 2227     | `ssh scm3` or `ssh -p 2227 rocky@localhost` |
-| Recon   | ozone-recon    | 2228     | `ssh recon` or `ssh -p 2228 rocky@localhost` |
-| S3GW    | ozone-s3gateway| 2229     | `ssh s3gateway` or `ssh -p 2229 rocky@localhost` |
-| DN1     | ozone-datanode1| 2230     | `ssh datanode1` or `ssh -p 2230 rocky@localhost` |
-| DN2     | ozone-datanode2| 2231     | `ssh datanode2` or `ssh -p 2231 rocky@localhost` |
-| DN3     | ozone-datanode3| 2232     | `ssh datanode3` or `ssh -p 2232 rocky@localhost` |
-| HttpFS  | ozone-httpfs   | 2233     | `ssh httpfs` or `ssh -p 2233 rocky@localhost` |
-| Prometheus | ozone-prometheus | 2234 | `ssh prometheus` or `ssh -p 2234 rocky@localhost` |
-| Grafana | ozone-grafana  | 2235     | `ssh grafana` or `ssh -p 2235 rocky@localhost` |
-| Client  | ozone-client   | 2236     | `ssh client` or `ssh -p 2236 rocky@localhost` |
+| Service | Container Name | SSH Port | Web Port | Access Method |
+|---------|----------------|----------|----------|---------------|
+| OM1     | ozone-om1      | 2222     | 9874     | `ssh om1` or `ssh -p 2222 rocky@localhost`, Web UI: `http://localhost:9874` |
+| OM2     | ozone-om2      | 2223     | 19874    | `ssh om2` or `ssh -p 2223 rocky@localhost`, Web UI: `http://localhost:19874` |
+| OM3     | ozone-om3      | 2224     | 29874    | `ssh om3` or `ssh -p 2224 rocky@localhost`, Web UI: `http://localhost:29874` |
+| SCM1    | ozone-scm1     | 2225     | 9876     | `ssh scm1` or `ssh -p 2225 rocky@localhost`, Web UI: `http://localhost:9876` |
+| SCM2    | ozone-scm2     | 2226     | 19876    | `ssh scm2` or `ssh -p 2226 rocky@localhost`, Web UI: `http://localhost:19876` |
+| SCM3    | ozone-scm3     | 2227     | 29876    | `ssh scm3` or `ssh -p 2227 rocky@localhost`, Web UI: `http://localhost:29876` |
+| Recon   | ozone-recon    | 2228     | 9888     | `ssh recon` or `ssh -p 2228 rocky@localhost`, Web UI: `http://localhost:9888` |
+| S3GW    | ozone-s3gateway| 2229     | 9878     | `ssh s3gateway` or `ssh -p 2229 rocky@localhost`, API: `http://localhost:9878` |
+| DN1     | ozone-datanode1| 2230     | 9882     | `ssh datanode1` or `ssh -p 2230 rocky@localhost`, Web UI: `http://localhost:9882` |
+| DN2     | ozone-datanode2| 2231     | 19882    | `ssh datanode2` or `ssh -p 2231 rocky@localhost`, Web UI: `http://localhost:19882` |
+| DN3     | ozone-datanode3| 2232     | 29882    | `ssh datanode3` or `ssh -p 2232 rocky@localhost`, Web UI: `http://localhost:29882` |
+| HttpFS  | ozone-httpfs   | 2233     | 14000    | `ssh httpfs` or `ssh -p 2233 rocky@localhost`, API: `http://localhost:14000` |
+| Prometheus | ozone-prometheus | 2234 | 9090     | `ssh prometheus` or `ssh -p 2234 rocky@localhost`, Web UI: `http://localhost:9090` |
+| Grafana | ozone-grafana  | 2235     | 3000     | `ssh grafana` or `ssh -p 2235 rocky@localhost`, Web UI: `http://localhost:3000` |
+| Client  | ozone-client   | 2236     | -        | `ssh client` or `ssh -p 2236 rocky@localhost` |
 
 Services communicate using hostnames within the Docker network (e.g., `http://om1:9874`, `http://scm1:9876`).
 

@@ -203,6 +203,41 @@ test_ssh_port_mappings() {
         0
 }
 
+# Test 8: Web port mappings validation
+test_web_port_mappings() {
+    run_test "OM services have web port mappings (9874)" \
+        "grep -A15 '^  om[123]:' $COMPOSE_FILE | grep -E '(9874|19874|29874):9874' | wc -l | grep -q '^3$'" \
+        0
+
+    run_test "SCM services have web port mappings (9876)" \
+        "grep -A15 '^  scm[123]:' $COMPOSE_FILE | grep -E '(9876|19876|29876):9876' | wc -l | grep -q '^3$'" \
+        0
+
+    run_test "DataNode services have web port mappings (9882)" \
+        "grep -A15 '^  datanode[123]:' $COMPOSE_FILE | grep -E '(9882|19882|29882):9882' | wc -l | grep -q '^3$'" \
+        0
+
+    run_test "Recon has web port mapping (9888)" \
+        "grep -A15 '^  recon:' $COMPOSE_FILE | grep '9888:9888' | wc -l | grep -q '^1$'" \
+        0
+
+    run_test "S3 Gateway has web port mapping (9878)" \
+        "grep -A15 '^  s3gateway:' $COMPOSE_FILE | grep '9878:9878' | wc -l | grep -q '^1$'" \
+        0
+
+    run_test "HttpFS has port mapping (14000)" \
+        "grep -A15 '^  httpfs:' $COMPOSE_FILE | grep '14000:14000' | wc -l | grep -q '^1$'" \
+        0
+
+    run_test "Prometheus has web port mapping (9090)" \
+        "grep -A15 '^  prometheus:' $COMPOSE_FILE | grep '9090:9090' | wc -l | grep -q '^1$'" \
+        0
+
+    run_test "Grafana has web port mapping (3000)" \
+        "grep -A15 '^  grafana:' $COMPOSE_FILE | grep '3000:3000' | wc -l | grep -q '^1$'" \
+        0
+}
+
 # Main test execution
 main() {
     echo "Running tests for setup-ozone-docker-ssh.sh and docker-compose.yml"
@@ -227,6 +262,7 @@ main() {
     test_script_structure || true
     test_compose_structure || true
     test_ssh_port_mappings || true
+    test_web_port_mappings || true
     test_invalid_option || true
     test_valid_options || true
     set -e

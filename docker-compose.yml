@@ -12,6 +12,7 @@ services:
     hostname: om1
     ports:
       - "2222:22"    # SSH
+      - "9874:9874"  # OM Web UI
     volumes:
       - om1-data:/var/lib/hadoop-ozone/om
     networks:
@@ -29,6 +30,7 @@ services:
     hostname: om2
     ports:
       - "2223:22"    # SSH
+      - "19874:9874" # OM Web UI
     volumes:
       - om2-data:/var/lib/hadoop-ozone/om
     networks:
@@ -46,6 +48,7 @@ services:
     hostname: om3
     ports:
       - "2224:22"    # SSH
+      - "29874:9874" # OM Web UI
     volumes:
       - om3-data:/var/lib/hadoop-ozone/om
     networks:
@@ -64,6 +67,7 @@ services:
     hostname: scm1
     ports:
       - "2225:22"    # SSH
+      - "9876:9876"  # SCM Web UI
     volumes:
       - scm1-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -81,6 +85,7 @@ services:
     hostname: scm2
     ports:
       - "2226:22"    # SSH
+      - "19876:9876" # SCM Web UI
     volumes:
       - scm2-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -98,6 +103,7 @@ services:
     hostname: scm3
     ports:
       - "2227:22"    # SSH
+      - "29876:9876" # SCM Web UI
     volumes:
       - scm3-data:/var/lib/hadoop-ozone/scm
     networks:
@@ -116,6 +122,7 @@ services:
     hostname: recon
     ports:
       - "2228:22"    # SSH
+      - "9888:9888"  # Recon Web UI
     volumes:
       - recon-data:/var/lib/hadoop-ozone/recon
     networks:
@@ -134,6 +141,7 @@ services:
     hostname: s3gateway
     ports:
       - "2229:22"    # SSH
+      - "9878:9878"  # S3 Gateway
     volumes:
       - s3gateway-data:/var/lib/hadoop-ozone/s3g
     networks:
@@ -152,6 +160,7 @@ services:
     hostname: datanode1
     ports:
       - "2230:22"    # SSH
+      - "9882:9882"  # DataNode Web UI
     volumes:
       - datanode1-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -169,6 +178,7 @@ services:
     hostname: datanode2
     ports:
       - "2231:22"    # SSH
+      - "19882:9882" # DataNode Web UI
     volumes:
       - datanode2-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -186,6 +196,7 @@ services:
     hostname: datanode3
     ports:
       - "2232:22"    # SSH
+      - "29882:9882" # DataNode Web UI
     volumes:
       - datanode3-data:/var/lib/hadoop-ozone/datanode
     networks:
@@ -204,6 +215,7 @@ services:
     hostname: httpfs
     ports:
       - "2233:22"    # SSH
+      - "14000:14000" # HttpFS
     volumes:
       - httpfs-data:/var/lib/hadoop-ozone/httpfs
     networks:
@@ -222,6 +234,7 @@ services:
     hostname: prometheus
     ports:
       - "2234:22"    # SSH
+      - "9090:9090"  # Prometheus Web UI
     volumes:
       - prometheus-data:/var/lib/prometheus
     networks:
@@ -239,6 +252,7 @@ services:
     hostname: grafana
     ports:
       - "2235:22"    # SSH
+      - "3000:3000"  # Grafana Web UI
     volumes:
       - grafana-data:/var/lib/grafana
     networks:

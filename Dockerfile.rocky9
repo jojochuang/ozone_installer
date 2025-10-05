@@ -35,6 +35,10 @@ RUN mkdir -p /run/sshd
 ENV JAVA_HOME=/usr/lib/jvm/java
 ENV OZONE_HOME=/opt/ozone
 
+# Configure environment variables globally, including ssh sessions.
+RUN printf 'JAVA_HOME=/usr/lib/jvm/java\nOZONE_HOME=/opt/ozone\n' >>/etc/environment
+
+
 # Expose SSH port
 EXPOSE 22
 

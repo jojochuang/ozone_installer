@@ -1,0 +1,49 @@
+FROM ubuntu:24.04
+
+# Install SSH server and other essential packages
+# Set DEBIAN_FRONTEND to avoid interactive prompts during installation
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    openssh-server \
+    sudo \
+    passwd \
+    procps \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create the SSH host keys
+RUN ssh-keygen -A
+
+# Create a user for SSH access
+RUN useradd -m -s /bin/bash ubuntu && \
+    echo 'ubuntu:ubuntu' | chpasswd && \
+    usermod -aG sudo ubuntu
+
+# Allow the ubuntu user to use sudo without password
+RUN echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Configure SSH daemon
+RUN mkdir -p /home/ubuntu/.ssh && \
+    chown ubuntu:ubuntu /home/ubuntu/.ssh && \
+    chmod 700 /home/ubuntu/.ssh
+
+# Configure sshd for password-less authentication
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Create the run directory for sshd
+RUN mkdir -p /run/sshd
+
+# Expose SSH port
+EXPOSE 22
+
+# Expose Ozone service ports
+EXPOSE 9874 9876 9888 9878 14000 9882
+
+# Expose Prometheus and Grafana ports
+EXPOSE 9090 3000
+
+# Start SSH daemon
+CMD ["/usr/sbin/sshd", "-D"]

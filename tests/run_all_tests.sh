@@ -48,6 +48,13 @@ else
 fi
 ((TOTAL_TESTS++))
 
+if run_test_script "$SCRIPT_DIR/test_setup_ubuntu24_ssh.sh" "setup-ubuntu24-ssh.sh command options"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+((TOTAL_TESTS++))
+
 echo ""
 
 # Run Docker SSH setup tests
